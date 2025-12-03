@@ -3,22 +3,44 @@ import { supabase } from '../supabase/supabaseClient.js';
 function normalizeInstagram(inst) {
   if (!inst) return [];
   if (Array.isArray(inst)) return inst.map(p => String(p).trim()).filter(Boolean);
-  return [String(pref).trim()];
+  return [String(inst).trim()];
 }
 
 export async function createPublicClient(payload) {
-  const { name, email, city, phone, birthday_day, birthday_month, Instagram} = payload;
+  const { 
+    name, 
+    email, 
+    city, 
+    phone, 
+    birthday_day, 
+    birthday_month,
+    birthday_year,
+    Instagram 
+  } = payload;
 
-  if (!name || !email || !phone) throw new Error('name and email and phone are required');
+  if (!name || !email || !phone) {
+    throw new Error('name and email and phone are required');
+  }
 
   const day = birthday_day ? parseInt(birthday_day, 10) : null;
   const month = birthday_month ? parseInt(birthday_month, 10) : null;
+  const year = birthday_year ? parseInt(birthday_year, 10) : null;
 
-  if (day !== null && (day < 1 || day > 31)) throw new Error('birthday_day must be between 1 and 31');
-  if (month !== null && (month < 1 || month > 12)) throw new Error('birthday_month must be between 1 and 12');
+  if (day !== null && (day < 1 || day > 31)) {
+    throw new Error('birthday_day must be between 1 and 31');
+  }
+
+  if (month !== null && (month < 1 || month > 12)) {
+    throw new Error('birthday_month must be between 1 and 12');
+  }
+
+  if (year !== null && (year < 1900 || year > new Date().getFullYear())) {
+    throw new Error('birthday_year invalid');
+  }
 
   const inst = normalizeInstagram(Instagram);
 
+  // evita emails duplicados
   const { data: existing, error: selErr } = await supabase
     .from('clients')
     .select('id')
@@ -26,24 +48,24 @@ export async function createPublicClient(payload) {
     .maybeSingle();
 
   if (selErr) throw selErr;
-  if (existing) {
-    // return existing record id (or choose to throw). Here we throw to avoid duplicates
-    throw new Error('Email already registered');
-  }
+  if (existing) throw new Error('Email already registered');
 
   console.log("PAYLOAD RECEBIDO:", payload);
 
   const { data, error } = await supabase
     .from('clients')
-    .insert([{
-      name,
-      email,
-      city,
-      phone,
-      birthday_day: day,
-      birthday_month: month,
-      Instagram: inst,
-    }])
+    .insert([
+      {
+        name,
+        email,
+        city,
+        phone,
+        birthday_day: day,
+        birthday_month: month,
+        birthday_year: year,
+        Instagram: inst
+      }
+    ])
     .select('*')
     .single();
 
@@ -51,11 +73,13 @@ export async function createPublicClient(payload) {
   return data;
 }
 
+
 export async function listClients() {
   const { data, error } = await supabase
     .from('clients')
     .select('*')
     .order('created_at', { ascending: false });
+
   if (error) throw error;
   return data || [];
 }
@@ -66,6 +90,7 @@ export async function getClientById(id) {
     .select('*')
     .eq('id', id)
     .maybeSingle();
+
   if (error) throw error;
   return data || null;
 }
@@ -90,7 +115,6 @@ export async function listClientsFiltered(query) {
     );
   }
 
-
   if (month) {
     supa = supa.eq("birthday_month", Number(month));
   }
@@ -111,14 +135,13 @@ export async function listClientsFiltered(query) {
 
 export async function getClientEligibility(clientId) {
   const { count, error: interactionsError } = await supabase
-  .from('interactions')
-  .select('id', { count: 'exact', head: true })
-  .eq('client_id', clientId);
+    .from('interactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('client_id', clientId);
 
-if (interactionsError) throw interactionsError;
-
-const totalInteractions = count || 0;
+  if (interactionsError) throw interactionsError;
   
+  const totalInteractions = count || 0;
   const eligible = totalInteractions >= 10;
 
   return {
@@ -129,9 +152,18 @@ const totalInteractions = count || 0;
   };
 }
 
-
 export async function updateClient(id, payload) {
-  const { name, email, city, phone, birthday_day, birthday_month, Instagram} = payload;
+  const { 
+    name, 
+    email, 
+    city, 
+    phone, 
+    birthday_day,
+    birthday_month,
+    birthday_year,
+    Instagram 
+  } = payload;
+
   const inst = normalizeInstagram(Instagram);
 
   const updateObj = {};
@@ -141,6 +173,7 @@ export async function updateClient(id, payload) {
   if (phone !== undefined) updateObj.phone = phone;
   if (birthday_day !== undefined) updateObj.birthday_day = birthday_day;
   if (birthday_month !== undefined) updateObj.birthday_month = birthday_month;
+  if (birthday_year !== undefined) updateObj.birthday_year = birthday_year;
   if (Instagram !== undefined) updateObj.Instagram = inst;
 
   const { data, error } = await supabase
