@@ -84,3 +84,42 @@ export async function getStatusCount() {
     inactive: inactiveQuery.count || 0,
   };
 }
+
+// Clientes cadastrados por mês (ano atual)
+export async function getClientsByMonth() {
+  const now = new Date();
+  const year = now.getFullYear();
+
+  const start = new Date(year, 0, 1).toISOString();
+  const end = new Date(year, 11, 31, 23, 59, 59).toISOString();
+
+  const { data, error } = await supabase
+    .from("clients")
+    .select("created_at")
+    .gte("created_at", start)
+    .lte("created_at", end);
+
+  if (error) throw error;
+
+  const months = Array(12).fill(0);
+
+  data.forEach((item) => {
+    const month = new Date(item.created_at).getMonth(); // 0–11
+    months[month]++;
+  });
+
+  return [
+    { month: "Jan", total: months[0] },
+    { month: "Fev", total: months[1] },
+    { month: "Mar", total: months[2] },
+    { month: "Abr", total: months[3] },
+    { month: "Mai", total: months[4] },
+    { month: "Jun", total: months[5] },
+    { month: "Jul", total: months[6] },
+    { month: "Ago", total: months[7] },
+    { month: "Set", total: months[8] },
+    { month: "Out", total: months[9] },
+    { month: "Nov", total: months[10] },
+    { month: "Dez", total: months[11] }
+  ];
+}
