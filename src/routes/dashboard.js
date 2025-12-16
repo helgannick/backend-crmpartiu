@@ -6,6 +6,7 @@ import {
   getBirthdaysThisMonth,
   getRecentClients,
   getStatusCount,
+  getClientsByMonth,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
@@ -63,5 +64,15 @@ router.get("/status", async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+router.get("/clients-by-month", async (req, res) => {
+  try {
+    const data = await getClientsByMonth();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 export default router;

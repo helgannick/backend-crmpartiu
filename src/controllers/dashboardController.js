@@ -123,3 +123,33 @@ export async function getClientsByMonth() {
     { month: "Dez", total: months[11] }
   ];
 }
+
+// Clientes por cidade
+export async function getClientsByCity() {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("city");
+
+  if (error) throw error;
+
+  const map = {};
+
+  data.forEach((item) => {
+    if (!item.city) return;
+
+    const city = item.city.trim();
+
+    map[city] = (map[city] || 0) + 1;
+  });
+
+  // transforma em array
+  const result = Object.entries(map).map(([city, total]) => ({
+    city,
+    total
+  }));
+
+  // ordena do maior pro menor
+  result.sort((a, b) => b.total - a.total);
+
+  return result;
+}
