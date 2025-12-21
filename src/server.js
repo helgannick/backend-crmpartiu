@@ -20,7 +20,7 @@ app.use('/auth', authRoutes);
 
 app.use('/clients', authMiddleware, clientsRoutes);
 app.use('/clients', authMiddleware, interactionsRoutes);
-app.use("/dashboard", dashboardRoutes);
+app.use("/dashboard", authMiddleware, dashboardRoutes);
 
 
 const PORT = process.env.PORT || 3001;
