@@ -1,6 +1,28 @@
 import { supabase } from "../supabase/supabaseClient.js";
 
-// Total de clientes
+function normalizeCity(city) {
+  if (!city) return null;
+
+  const normalized = city
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+
+  if (normalized === "rj" || normalized === "rio") {
+    return "Rio de Janeiro";
+  }
+
+  if (normalized.includes("rio de janeiro")) {
+    return "Rio de Janeiro";
+  }
+
+
+  return city.trim();
+}
+
+
 export async function getTotalClients() {
   const { count, error } = await supabase
     .from("clients")
@@ -10,7 +32,6 @@ export async function getTotalClients() {
   return count || 0;
 }
 
-// Clientes da semana
 export async function getNewClientsWeek() {
   const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -23,7 +44,7 @@ export async function getNewClientsWeek() {
   return count || 0;
 }
 
-// Clientes do mês
+
 export async function getNewClientsMonth() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -37,7 +58,7 @@ export async function getNewClientsMonth() {
   return count || 0;
 }
 
-// Aniversariantes do mês
+
 export async function getBirthdaysThisMonth() {
   const now = new Date();
   const month = now.getMonth() + 1;
@@ -52,7 +73,7 @@ export async function getBirthdaysThisMonth() {
   return data || [];
 }
 
-// Últimos 5 cadastrados
+
 export async function getRecentClients() {
   const { data, error } = await supabase
     .from("clients")
@@ -64,7 +85,6 @@ export async function getRecentClients() {
   return data || [];
 }
 
-// Contagem de ativos e inativos
 export async function getStatusCount() {
   const activeQuery = await supabase
     .from("clients")
@@ -85,7 +105,6 @@ export async function getStatusCount() {
   };
 }
 
-// Clientes cadastrados por mês (ano atual)
 export async function getClientsByMonth() {
   const now = new Date();
   const year = now.getFullYear();
@@ -104,7 +123,7 @@ export async function getClientsByMonth() {
   const months = Array(12).fill(0);
 
   data.forEach((item) => {
-    const month = new Date(item.created_at).getMonth(); // 0–11
+    const month = new Date(item.created_at).getMonth();
     months[month]++;
   });
 
@@ -120,11 +139,11 @@ export async function getClientsByMonth() {
     { month: "Set", total: months[8] },
     { month: "Out", total: months[9] },
     { month: "Nov", total: months[10] },
-    { month: "Dez", total: months[11] }
+    { month: "Dez", total: months[11] },
   ];
 }
 
-// Clientes por cidade
+
 export async function getClientsByCity() {
   const { data, error } = await supabase
     .from("clients")
@@ -132,23 +151,19 @@ export async function getClientsByCity() {
 
   if (error) throw error;
 
-  const map = {};
+  const map = new Map();
 
-  data.forEach((item) => {
-    if (!item.city) return;
+  data.forEach(({ city }) => {
+    const normalized = normalizeCity(city);
+    if (!normalized) return;
 
-    const city = item.city.trim();
-
-    map[city] = (map[city] || 0) + 1;
+    map.set(normalized, (map.get(normalized) || 0) + 1);
   });
 
-  // transforma em array
-  const result = Object.entries(map).map(([city, total]) => ({
-    city,
-    total
-  }));
+  const result = Array.from(map.entries()).map(
+    ([city, total]) => ({ city, total })
+  );
 
-  // ordena do maior pro menor
   result.sort((a, b) => b.total - a.total);
 
   return result;
