@@ -7,6 +7,7 @@ import {
   getRecentClients,
   getStatusCount,
   getClientsByMonth,
+  getClientsByCity,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
@@ -74,5 +75,13 @@ router.get("/clients-by-month", async (req, res) => {
   }
 });
 
+router.get("/clients-by-city", async (req, res) => {
+  try {
+    const data = await getClientsByCity();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
