@@ -6,7 +6,7 @@ function normalizeInstagram(inst) {
   return [String(inst).trim()];
 }
 
-export async function createPublicClient(payload) {
+export async function createClient(payload, source = 'public') {
   const { 
     name, 
     email, 
@@ -19,22 +19,22 @@ export async function createPublicClient(payload) {
   } = payload;
 
   if (!name || !email || !phone) {
-    throw new Error('name and email and phone are required');
+    throw new Error('name, email and phone are required');
   }
 
   const day = birthday_day ? parseInt(birthday_day, 10) : null;
   const month = birthday_month ? parseInt(birthday_month, 10) : null;
   const year = birthday_year ? parseInt(birthday_year, 10) : null;
 
-  if (day !== null && (day < 1 || day > 31)) {
+  if (day && (day < 1 || day > 31)) {
     throw new Error('birthday_day must be between 1 and 31');
   }
 
-  if (month !== null && (month < 1 || month > 12)) {
+  if (month && (month < 1 || month > 12)) {
     throw new Error('birthday_month must be between 1 and 12');
   }
 
-  if (year !== null && (year < 1900 || year > new Date().getFullYear())) {
+  if (year && (year < 1900 || year > new Date().getFullYear())) {
     throw new Error('birthday_year invalid');
   }
 
@@ -50,22 +50,18 @@ export async function createPublicClient(payload) {
   if (selErr) throw selErr;
   if (existing) throw new Error('Email already registered');
 
-  console.log("PAYLOAD RECEBIDO:", payload);
-
   const { data, error } = await supabase
     .from('clients')
-    .insert([
-      {
-        name,
-        email,
-        city,
-        phone,
-        birthday_day: day,
-        birthday_month: month,
-        birthday_year: year,
-        Instagram: inst
-      }
-    ])
+    .insert([{
+      name,
+      email,
+      city,
+      phone,
+      birthday_day: day,
+      birthday_month: month,
+      birthday_year: year,
+      Instagram: inst,
+    }])
     .select('*')
     .single();
 

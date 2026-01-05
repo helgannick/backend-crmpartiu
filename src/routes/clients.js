@@ -1,5 +1,6 @@
 import { supabase } from "../supabase/supabaseClient.js";
 import express from "express";
+
 import {
   listClients,
   getClientById,
@@ -7,6 +8,7 @@ import {
   deleteClient,
   listClientsFiltered,
   getClientEligibility,
+  createClient
 } from "../controllers/clientsController.js";
 
 const router = express.Router();
@@ -20,6 +22,17 @@ router.get("/", async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 });
+
+router.post("/", async (req, res) => {
+  try {
+    const client = await createClient(req.body, 'admin');
+    res.status(201).json(client);
+  } catch (err) {
+    console.error("POST /clients error", err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
 
 router.get("/:id", async (req, res) => {
   try {
