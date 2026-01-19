@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 
 import publicRoutes from './routes/public.js';
-import authRoutes from './routes/auth.js';
 import clientsRoutes from './routes/clients.js';
 import interactionsRoutes from './routes/interactions.js';
 import { authMiddleware } from './auth/authMiddleware.js';
@@ -14,7 +13,6 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/public', publicRoutes);
-app.use('/auth', authRoutes);
 
 app.use('/clients', authMiddleware, clientsRoutes);
 app.use('/clients', authMiddleware, interactionsRoutes);
