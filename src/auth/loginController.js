@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
+//import jwt from 'jsonwebtoken';
 
-export async function login(req, res) {
+/*export async function login(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -28,4 +28,5 @@ export async function login(req, res) {
     console.error('login error', err);
     return res.status(500).json({ message: 'Erro interno' });
   }
-}
+}*/
+
