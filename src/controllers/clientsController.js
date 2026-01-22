@@ -2,7 +2,8 @@ import { supabase } from "../supabase/supabaseClient.js";
 
 function normalizeInstagram(inst) {
   if (!inst) return [];
-  if (Array.isArray(inst)) return inst.map((p) => String(p).trim()).filter(Boolean);
+  if (Array.isArray(inst))
+    return inst.map((p) => String(p).trim()).filter(Boolean);
   return [String(inst).trim()];
 }
 
@@ -53,6 +54,24 @@ function normalizeBoolean(value, defaultValue = false) {
   return defaultValue;
 }
 
+/**
+ * Aceita apenas "Masculino" ou "Feminino" (ou vazio/null)
+ * Qualquer outra coisa vira null (pra não sujar o banco)
+ */
+function normalizeGender(value) {
+  if (value === undefined || value === null) return null;
+
+  const str = String(value).trim();
+  if (!str) return null;
+
+  const lower = str.toLowerCase();
+
+  if (lower === "masculino" || lower === "m") return "Masculino";
+  if (lower === "feminino" || lower === "f") return "Feminino";
+
+  return null;
+}
+
 export async function createClient(payload, source = "public") {
   const {
     name,
@@ -71,6 +90,7 @@ export async function createClient(payload, source = "public") {
     bought_with_partiu,
     music_genres,
     music_genre_other,
+    gender,
   } = payload;
 
   if (!name || !email || !phone) {
@@ -98,6 +118,7 @@ export async function createClient(payload, source = "public") {
   // ✅ normalizações dos novos campos
   const genres = normalizeTextArray(music_genres);
   const bought = normalizeBoolean(bought_with_partiu, false);
+  const genderNormalized = normalizeGender(gender);
 
   // evita emails duplicados
   const { data: existing, error: selErr } = await supabase
@@ -122,13 +143,14 @@ export async function createClient(payload, source = "public") {
         birthday_year: year,
         Instagram: inst,
 
-        // ✅ novos campos (salva só se existir / default do banco cuida)
+        // ✅ novos campos
         lead_source: lead_source ?? null,
         favorite_event: favorite_event ?? null,
         last_event: last_event ?? null,
         bought_with_partiu: bought,
         music_genres: genres,
         music_genre_other: music_genre_other ?? null,
+        gender: genderNormalized, // ✅ agora salva
       },
     ])
     .select("*")
@@ -228,6 +250,7 @@ export async function updateClient(id, payload) {
     bought_with_partiu,
     music_genres,
     music_genre_other,
+    gender, // ✅ agora pega do payload
   } = payload;
 
   const inst = normalizeInstagram(Instagram);
@@ -246,12 +269,22 @@ export async function updateClient(id, payload) {
   if (lead_source !== undefined) updateObj.lead_source = lead_source;
   if (favorite_event !== undefined) updateObj.favorite_event = favorite_event;
   if (last_event !== undefined) updateObj.last_event = last_event;
-  if (bought_with_partiu !== undefined)
+
+  if (bought_with_partiu !== undefined) {
     updateObj.bought_with_partiu = normalizeBoolean(bought_with_partiu, false);
-  if (music_genres !== undefined)
+  }
+
+  if (music_genres !== undefined) {
     updateObj.music_genres = normalizeTextArray(music_genres);
-  if (music_genre_other !== undefined)
+  }
+
+  if (music_genre_other !== undefined) {
     updateObj.music_genre_other = music_genre_other;
+  }
+
+  if (gender !== undefined) {
+    updateObj.gender = normalizeGender(gender); // ✅ agora atualiza também
+  }
 
   const { data, error } = await supabase
     .from("clients")
