@@ -1,76 +1,8 @@
 import { supabase } from "../supabase/supabaseClient.js";
 
-function normalizeInstagram(inst) {
-  if (!inst) return [];
-  if (Array.isArray(inst))
-    return inst.map((p) => String(p).trim()).filter(Boolean);
-  return [String(inst).trim()];
-}
-
-/**
- * Aceita:
- * - array: ["pagode","funk"]
- * - string csv: "pagode, funk"
- * - string única: "pagode"
- * - undefined/null -> []
- */
-function normalizeTextArray(value) {
-  if (!value) return [];
-
-  if (Array.isArray(value)) {
-    return value.map((v) => String(v).trim()).filter(Boolean);
-  }
-
-  // se vier como string "a,b,c"
-  const str = String(value).trim();
-  if (!str) return [];
-
-  if (str.includes(",")) {
-    return str
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-  }
-
-  return [str];
-}
-
-/**
- * Aceita:
- * - boolean true/false
- * - "SIM"/"NÃO"/"NAO"
- * - "true"/"false"
- * - 1/0
- */
-function normalizeBoolean(value, defaultValue = false) {
-  if (value === undefined || value === null) return defaultValue;
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value === 1;
-
-  const str = String(value).trim().toLowerCase();
-  if (["true", "1", "sim", "s", "yes", "y"].includes(str)) return true;
-  if (["false", "0", "nao", "não", "n", "no"].includes(str)) return false;
-
-  return defaultValue;
-}
-
-/**
- * Aceita apenas "Masculino" ou "Feminino" (ou vazio/null)
- * Qualquer outra coisa vira null (pra não sujar o banco)
- */
-function normalizeGender(value) {
-  if (value === undefined || value === null) return null;
-
-  const str = String(value).trim();
-  if (!str) return null;
-
-  const lower = str.toLowerCase();
-
-  if (lower === "masculino" || lower === "m") return "Masculino";
-  if (lower === "feminino" || lower === "f") return "Feminino";
-
-  return null;
-}
+/* ============================= */
+/* CREATE CLIENT */
+/* ============================= */
 
 export async function createClient(payload) {
   const {
@@ -83,7 +15,7 @@ export async function createClient(payload) {
     bought_with_partiu,
     favorite_event_id,
     music_genres,
-    birth_date   // ✅ ADICIONE AQUI
+    birth_date,
   } = payload;
 
   if (!name || !email || !phone) {
@@ -104,12 +36,12 @@ export async function createClient(payload) {
       name,
       email,
       phone,
-      city,
-      gender,
-      lead_source,
-      bought_with_partiu,
-      favorite_event_id,
-      birth_date: birth_date || null   // ✅ ADICIONE AQUI
+      city: city || null,
+      gender: gender || null,
+      lead_source: lead_source || null,
+      bought_with_partiu: bought_with_partiu ?? false,
+      favorite_event_id: favorite_event_id || null,
+      birth_date: birth_date || null,
     }])
     .select("*")
     .single();
@@ -134,6 +66,10 @@ export async function createClient(payload) {
   return client;
 }
 
+/* ============================= */
+/* LIST CLIENTS */
+/* ============================= */
+
 export async function listClients() {
   const { data, error } = await supabase
     .from("clients")
@@ -143,6 +79,10 @@ export async function listClients() {
   if (error) throw error;
   return data || [];
 }
+
+/* ============================= */
+/* GET CLIENT BY ID */
+/* ============================= */
 
 export async function getClientById(id) {
   const { data, error } = await supabase
@@ -164,6 +104,10 @@ export async function getClientById(id) {
   return data;
 }
 
+/* ============================= */
+/* LIST WITH FILTER */
+/* ============================= */
+
 export async function listClientsFiltered(query) {
   const { search, month, page = 1, limit = 20 } = query;
 
@@ -172,14 +116,18 @@ export async function listClientsFiltered(query) {
   let supa = supabase.from("clients").select("*", { count: "exact" });
 
   if (search) {
-    // mantém do jeito que já estava (sem quebrar)
     supa = supa.or(
       `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%,city.ilike.%${search}%`
     );
   }
 
+  // 🔥 filtro por mês usando birth_date
   if (month) {
-    supa = supa.eq("birthday_month", Number(month));
+    const monthStr = String(month).padStart(2, "0");
+
+    supa = supa
+      .gte("birth_date", `1900-${monthStr}-01`)
+      .lte("birth_date", `2100-${monthStr}-31`);
   }
 
   supa = supa.range(offset, offset + limit - 1);
@@ -196,42 +144,49 @@ export async function listClientsFiltered(query) {
   };
 }
 
-export async function getClientEligibility(clientId) {
-  const { count, error: interactionsError } = await supabase
-    .from("interactions")
-    .select("id", { count: "exact", head: true })
-    .eq("client_id", clientId);
-
-  if (interactionsError) throw interactionsError;
-
-  const totalInteractions = count || 0;
-  const eligible = totalInteractions >= 10;
-
-  return {
-    client_id: clientId,
-    total_interactions: totalInteractions,
-    eligible,
-    rule: ">= 10 interações",
-  };
-}
+/* ============================= */
+/* UPDATE CLIENT (BLINDADO) */
+/* ============================= */
 
 export async function updateClient(id, payload) {
   const {
     music_genres,
-    ...basicFields
+    name,
+    email,
+    phone,
+    city,
+    gender,
+    lead_source,
+    bought_with_partiu,
+    favorite_event_id,
+    birth_date,
   } = payload;
 
-  // 1️⃣ atualiza campos básicos
-  if (Object.keys(basicFields).length > 0) {
+  const allowedFields = {
+    name,
+    email,
+    phone,
+    city,
+    gender,
+    lead_source,
+    bought_with_partiu,
+    favorite_event_id,
+    birth_date,
+  };
+
+  const cleanFields = Object.fromEntries(
+    Object.entries(allowedFields).filter(([_, v]) => v !== undefined)
+  );
+
+  if (Object.keys(cleanFields).length > 0) {
     const { error } = await supabase
       .from("clients")
-      .update(basicFields)
+      .update(cleanFields)
       .eq("id", id);
 
     if (error) throw error;
   }
 
-  // 2️⃣ atualiza gêneros
   if (music_genres !== undefined) {
     await supabase
       .from("client_music_genres")
@@ -255,9 +210,20 @@ export async function updateClient(id, payload) {
   return await getClientById(id);
 }
 
+/* ============================= */
+/* DELETE CLIENT */
+/* ============================= */
+
 export async function deleteClient(id) {
-  const { error } = await supabase.from("clients").delete().eq("id", id);
+  await supabase.from("client_music_genres").delete().eq("client_id", id);
+  await supabase.from("client_events").delete().eq("client_id", id);
+
+  const { error } = await supabase
+    .from("clients")
+    .delete()
+    .eq("id", id);
 
   if (error) throw error;
+
   return true;
 }
