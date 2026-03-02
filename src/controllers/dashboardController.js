@@ -66,11 +66,23 @@ export async function getBirthdaysThisMonth() {
   const { data, error } = await supabase
     .from("clients")
     .select("*")
-    .eq("birthday_month", month)
-    .order("birthday_day", { ascending: true });
+    .not("birth_date", "is", null);
 
   if (error) throw error;
-  return data || [];
+
+  // filtra pelo mês via JS (simples e eficiente)
+  const filtered = data
+    .filter((client) => {
+      const date = new Date(client.birth_date);
+      return date.getMonth() + 1 === month;
+    })
+    .sort((a, b) => {
+      const dayA = new Date(a.birth_date).getDate();
+      const dayB = new Date(b.birth_date).getDate();
+      return dayA - dayB;
+    });
+
+  return filtered;
 }
 
 

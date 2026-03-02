@@ -72,92 +72,67 @@ function normalizeGender(value) {
   return null;
 }
 
-export async function createClient(payload, source = "public") {
+export async function createClient(payload) {
   const {
     name,
     email,
-    city,
     phone,
-    birthday_day,
-    birthday_month,
-    birthday_year,
-    Instagram,
-
-    // ✅ novos campos
-    lead_source,
-    favorite_event,
-    last_event,
-    bought_with_partiu,
-    music_genres,
-    music_genre_other,
+    city,
     gender,
+    lead_source,
+    bought_with_partiu,
+    favorite_event_id,
+    music_genres // array de UUIDs
   } = payload;
 
   if (!name || !email || !phone) {
     throw new Error("name, email and phone are required");
   }
 
-  const day = birthday_day ? parseInt(birthday_day, 10) : null;
-  const month = birthday_month ? parseInt(birthday_month, 10) : null;
-  const year = birthday_year ? parseInt(birthday_year, 10) : null;
-
-  if (day && (day < 1 || day > 31)) {
-    throw new Error("birthday_day must be between 1 and 31");
-  }
-
-  if (month && (month < 1 || month > 12)) {
-    throw new Error("birthday_month must be between 1 and 12");
-  }
-
-  if (year && (year < 1900 || year > new Date().getFullYear())) {
-    throw new Error("birthday_year invalid");
-  }
-
-  const inst = normalizeInstagram(Instagram);
-
-  // ✅ normalizações dos novos campos
-  const genres = normalizeTextArray(music_genres);
-  const bought = normalizeBoolean(bought_with_partiu, false);
-  const genderNormalized = normalizeGender(gender);
-
-  // evita emails duplicados
-  const { data: existing, error: selErr } = await supabase
+  // verifica duplicidade
+  const { data: existing } = await supabase
     .from("clients")
     .select("id")
     .eq("email", email)
     .maybeSingle();
 
-  if (selErr) throw selErr;
   if (existing) throw new Error("Email already registered");
 
-  const { data, error } = await supabase
+  // 1️⃣ cria cliente
+  const { data: client, error } = await supabase
     .from("clients")
-    .insert([
-      {
-        name,
-        email,
-        city,
-        phone,
-        birthday_day: day,
-        birthday_month: month,
-        birthday_year: year,
-        Instagram: inst,
-
-        // ✅ novos campos
-        lead_source: lead_source ?? null,
-        favorite_event: favorite_event ?? null,
-        last_event: last_event ?? null,
-        bought_with_partiu: bought,
-        music_genres: genres,
-        music_genre_other: music_genre_other ?? null,
-        gender: genderNormalized, // ✅ agora salva
-      },
-    ])
+    .insert([{
+      name,
+      email,
+      phone,
+      city,
+      gender,
+      lead_source,
+      bought_with_partiu,
+      favorite_event_id
+    }])
     .select("*")
     .single();
 
   if (error) throw error;
-  return data;
+
+  const clientId = client.id;
+
+  // 2️⃣ salva gêneros
+  if (music_genres?.length) {
+    const rows = music_genres.map((genreId) => ({
+      client_id: clientId,
+      genre_id: genreId,
+    }));
+
+    const { error: genreError } = await supabase
+      .from("client_music_genres")
+      .insert(rows);
+
+    if (genreError) throw genreError;
+  }
+
+  return client;
 }
 
 export async function listClients() {
@@ -173,12 +148,21 @@ export async function listClients() {
 export async function getClientById(id) {
   const { data, error } = await supabase
     .from("clients")
-    .select("*")
+    .select(`
+      *,
+      favorite_event:events (*),
+      client_music_genres (
+        music_genres (*)
+      ),
+      client_events (
+        events (*)
+      )
+    `)
     .eq("id", id)
-    .maybeSingle();
+    .single();
 
   if (error) throw error;
-  return data || null;
+  return data;
 }
 
 export async function listClientsFiltered(query) {
@@ -234,67 +218,42 @@ export async function getClientEligibility(clientId) {
 
 export async function updateClient(id, payload) {
   const {
-    name,
-    email,
-    city,
-    phone,
-    birthday_day,
-    birthday_month,
-    birthday_year,
-    Instagram,
-
-    // ✅ novos campos
-    lead_source,
-    favorite_event,
-    last_event,
-    bought_with_partiu,
     music_genres,
-    music_genre_other,
-    gender, // ✅ agora pega do payload
+    ...basicFields
   } = payload;
 
-  const inst = normalizeInstagram(Instagram);
+  // 1️⃣ atualiza campos básicos
+  if (Object.keys(basicFields).length > 0) {
+    const { error } = await supabase
+      .from("clients")
+      .update(basicFields)
+      .eq("id", id);
 
-  const updateObj = {};
-  if (name !== undefined) updateObj.name = name;
-  if (email !== undefined) updateObj.email = email;
-  if (city !== undefined) updateObj.city = city;
-  if (phone !== undefined) updateObj.phone = phone;
-  if (birthday_day !== undefined) updateObj.birthday_day = birthday_day;
-  if (birthday_month !== undefined) updateObj.birthday_month = birthday_month;
-  if (birthday_year !== undefined) updateObj.birthday_year = birthday_year;
-  if (Instagram !== undefined) updateObj.Instagram = inst;
-
-  // ✅ updates dos novos campos
-  if (lead_source !== undefined) updateObj.lead_source = lead_source;
-  if (favorite_event !== undefined) updateObj.favorite_event = favorite_event;
-  if (last_event !== undefined) updateObj.last_event = last_event;
-
-  if (bought_with_partiu !== undefined) {
-    updateObj.bought_with_partiu = normalizeBoolean(bought_with_partiu, false);
+    if (error) throw error;
   }
 
+  // 2️⃣ atualiza gêneros
   if (music_genres !== undefined) {
-    updateObj.music_genres = normalizeTextArray(music_genres);
+    await supabase
+      .from("client_music_genres")
+      .delete()
+      .eq("client_id", id);
+
+    if (music_genres.length > 0) {
+      const rows = music_genres.map((genreId) => ({
+        client_id: id,
+        genre_id: genreId,
+      }));
+
+      const { error } = await supabase
+        .from("client_music_genres")
+        .insert(rows);
+
+      if (error) throw error;
+    }
   }
 
-  if (music_genre_other !== undefined) {
-    updateObj.music_genre_other = music_genre_other;
-  }
-
-  if (gender !== undefined) {
-    updateObj.gender = normalizeGender(gender); // ✅ agora atualiza também
-  }
-
-  const { data, error } = await supabase
-    .from("clients")
-    .update(updateObj)
-    .eq("id", id)
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return data;
+  return await getClientById(id);
 }
 
 export async function deleteClient(id) {
