@@ -6,13 +6,19 @@ import clientsRoutes from './routes/clients.js';
 import interactionsRoutes from './routes/interactions.js';
 import { authMiddleware } from './auth/authMiddleware.js';
 import dashboardRoutes from './routes/dashboard.js';
+import musicGenresRoutes from "./routes/musicGenres.js";
 
 const app = express();
+
+
 
 app.use(cors());
 app.use(express.json());
 
 app.use('/public', publicRoutes);
+
+app.use("/music-genres", musicGenresRoutes);
+
 
 app.use('/clients', authMiddleware, clientsRoutes);
 app.use('/clients', authMiddleware, interactionsRoutes);

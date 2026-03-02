@@ -7,7 +7,6 @@ import {
   updateClient,
   deleteClient,
   listClientsFiltered,
-  getClientEligibility,
   createClient
 } from "../controllers/clientsController.js";
 
@@ -45,15 +44,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.get("/:id/eligibility", async (req, res) => {
-  try {
-    const result = await getClientEligibility(req.params.id);
-    res.json(result);
-  } catch (err) {
-    console.error("eligibility error", err);
-    res.status(500).json({ message: err.message });
-  }
-});
+
 
 router.get("/:id/status", async (req, res) => {
   try {
