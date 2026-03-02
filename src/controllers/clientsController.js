@@ -82,14 +82,14 @@ export async function createClient(payload) {
     lead_source,
     bought_with_partiu,
     favorite_event_id,
-    music_genres // array de UUIDs
+    music_genres,
+    birth_date   // ✅ ADICIONE AQUI
   } = payload;
 
   if (!name || !email || !phone) {
     throw new Error("name, email and phone are required");
   }
 
-  // verifica duplicidade
   const { data: existing } = await supabase
     .from("clients")
     .select("id")
@@ -98,7 +98,6 @@ export async function createClient(payload) {
 
   if (existing) throw new Error("Email already registered");
 
-  // 1️⃣ cria cliente
   const { data: client, error } = await supabase
     .from("clients")
     .insert([{
@@ -109,7 +108,8 @@ export async function createClient(payload) {
       gender,
       lead_source,
       bought_with_partiu,
-      favorite_event_id
+      favorite_event_id,
+      birth_date: birth_date || null   // ✅ ADICIONE AQUI
     }])
     .select("*")
     .single();
@@ -118,7 +118,6 @@ export async function createClient(payload) {
 
   const clientId = client.id;
 
-  // 2️⃣ salva gêneros
   if (music_genres?.length) {
     const rows = music_genres.map((genreId) => ({
       client_id: clientId,
