@@ -15,9 +15,9 @@ export async function createClient(payload) {
     gender,
     lead_source,
     bought_with_partiu,
-    favorite_event_id,
+    favorite_event_id = payload.favorite_event_id || payload.favorite_event,
     music_genres,
-    other_genre,
+    other_genre = payload.other_genre || payload.music_genre_other,
     last_event,
     birth_date,
   } = payload;
@@ -180,6 +180,7 @@ export async function createClient(payload) {
 
     if (eventError) throw eventError;
   }
+  return client;
 }
 
 /* ============================= */
