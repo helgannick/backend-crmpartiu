@@ -1,5 +1,7 @@
 import { supabase } from "../supabase/supabaseClient.js";
 
+const isUUID = (val) => /^[0-9a-fA-F-]{36}$/.test(val);
+
 /* ============================= */
 /* CREATE CLIENT */
 /* ============================= */
@@ -15,6 +17,8 @@ export async function createClient(payload) {
     bought_with_partiu,
     favorite_event_id,
     music_genres,
+    other_genre,
+    last_event,
     birth_date,
   } = payload;
 
@@ -30,19 +34,54 @@ export async function createClient(payload) {
 
   if (existing) throw new Error("Email already registered");
 
+  /* =====================
+     RESOLVE favorite_event_id
+     Aceita UUID ou nome (string)
+  ===================== */
+  let resolvedFavoriteEventId = null;
+
+  if (favorite_event_id) {
+    if (isUUID(favorite_event_id)) {
+      resolvedFavoriteEventId = favorite_event_id;
+    } else {
+      // Tenta buscar evento pelo nome
+      const { data: existingEvent } = await supabase
+        .from("events")
+        .select("id")
+        .ilike("name", favorite_event_id)
+        .maybeSingle();
+
+      if (existingEvent) {
+        resolvedFavoriteEventId = existingEvent.id;
+      } else {
+        // Cria novo evento
+        const { data: newEvent, error: eventCreateError } = await supabase
+          .from("events")
+          .insert([{ name: favorite_event_id }])
+          .select()
+          .single();
+
+        if (eventCreateError) throw eventCreateError;
+        resolvedFavoriteEventId = newEvent.id;
+      }
+    }
+  }
+
   const { data: client, error } = await supabase
     .from("clients")
-    .insert([{
-      name,
-      email,
-      phone,
-      city: city || null,
-      gender: gender || null,
-      lead_source: lead_source || null,
-      bought_with_partiu: bought_with_partiu ?? false,
-      favorite_event_id: favorite_event_id || null,
-      birth_date: birth_date || null,
-    }])
+    .insert([
+      {
+        name,
+        email,
+        phone,
+        city: city || null,
+        gender: gender || null,
+        lead_source: lead_source || null,
+        bought_with_partiu: bought_with_partiu ?? false,
+        favorite_event_id: resolvedFavoriteEventId,
+        birth_date: birth_date || null,
+      },
+    ])
     .select("*")
     .single();
 
@@ -50,20 +89,97 @@ export async function createClient(payload) {
 
   const clientId = client.id;
 
-  if (music_genres?.length) {
-    const rows = music_genres.map((genreId) => ({
+  /* =====================
+     GENEROS MUSICAIS
+     Aceita UUIDs ou nomes (strings)
+  ===================== */
+
+  let genres = music_genres || [];
+
+  if (other_genre) {
+    genres.push(other_genre);
+  }
+
+  if (genres.length) {
+    const resolvedGenreIds = await Promise.all(
+      genres.map(async (genre) => {
+        if (isUUID(genre)) return genre;
+
+        // Tenta buscar gênero pelo nome
+        const { data: existingGenre } = await supabase
+          .from("music_genres")
+          .select("id")
+          .ilike("name", genre)
+          .maybeSingle();
+
+        if (existingGenre) return existingGenre.id;
+
+        // Cria novo gênero
+        const { data: newGenre, error: genreError } = await supabase
+          .from("music_genres")
+          .insert([{ name: genre }])
+          .select()
+          .single();
+
+        if (genreError) throw genreError;
+        return newGenre.id;
+      })
+    );
+
+    const rows = resolvedGenreIds.map((genreId) => ({
       client_id: clientId,
       genre_id: genreId,
     }));
 
-    const { error: genreError } = await supabase
+    const { error: genreInsertError } = await supabase
       .from("client_music_genres")
       .insert(rows);
 
-    if (genreError) throw genreError;
+    if (genreInsertError) throw genreInsertError;
   }
 
-  return client;
+  /* =====================
+     ULTIMO EVENTO
+     Aceita UUID ou nome (string)
+  ===================== */
+
+  if (last_event) {
+    let eventId = last_event;
+
+    if (!isUUID(last_event)) {
+      // Tenta buscar evento pelo nome
+      const { data: existingEvent } = await supabase
+        .from("events")
+        .select("id")
+        .ilike("name", last_event)
+        .maybeSingle();
+
+      if (existingEvent) {
+        eventId = existingEvent.id;
+      } else {
+        const { data: newEvent, error: eventCreateError } = await supabase
+          .from("events")
+          .insert([{ name: last_event }])
+          .select()
+          .single();
+
+        if (eventCreateError) throw eventCreateError;
+        eventId = newEvent.id;
+      }
+    }
+
+    const { error: eventError } = await supabase
+      .from("client_events")
+      .insert([
+        {
+          client_id: clientId,
+          event_id: eventId,
+          attended_at: new Date(),
+        },
+      ]);
+
+    if (eventError) throw eventError;
+  }
 }
 
 /* ============================= */
@@ -121,7 +237,6 @@ export async function listClientsFiltered(query) {
     );
   }
 
-  // 🔥 filtro por mês usando birth_date
   if (month) {
     const monthStr = String(month).padStart(2, "0");
 
@@ -162,6 +277,30 @@ export async function updateClient(id, payload) {
     birth_date,
   } = payload;
 
+  /* Resolve favorite_event_id se for nome */
+  let resolvedFavoriteEventId = favorite_event_id;
+
+  if (favorite_event_id !== undefined && !isUUID(favorite_event_id)) {
+    const { data: existingEvent } = await supabase
+      .from("events")
+      .select("id")
+      .ilike("name", favorite_event_id)
+      .maybeSingle();
+
+    if (existingEvent) {
+      resolvedFavoriteEventId = existingEvent.id;
+    } else {
+      const { data: newEvent, error: eventCreateError } = await supabase
+        .from("events")
+        .insert([{ name: favorite_event_id }])
+        .select()
+        .single();
+
+      if (eventCreateError) throw eventCreateError;
+      resolvedFavoriteEventId = newEvent.id;
+    }
+  }
+
   const allowedFields = {
     name,
     email,
@@ -170,7 +309,7 @@ export async function updateClient(id, payload) {
     gender,
     lead_source,
     bought_with_partiu,
-    favorite_event_id,
+    favorite_event_id: resolvedFavoriteEventId,
     birth_date,
   };
 
@@ -194,7 +333,30 @@ export async function updateClient(id, payload) {
       .eq("client_id", id);
 
     if (music_genres.length > 0) {
-      const rows = music_genres.map((genreId) => ({
+      const resolvedGenreIds = await Promise.all(
+        music_genres.map(async (genre) => {
+          if (isUUID(genre)) return genre;
+
+          const { data: existingGenre } = await supabase
+            .from("music_genres")
+            .select("id")
+            .ilike("name", genre)
+            .maybeSingle();
+
+          if (existingGenre) return existingGenre.id;
+
+          const { data: newGenre, error: genreError } = await supabase
+            .from("music_genres")
+            .insert([{ name: genre }])
+            .select()
+            .single();
+
+          if (genreError) throw genreError;
+          return newGenre.id;
+        })
+      );
+
+      const rows = resolvedGenreIds.map((genreId) => ({
         client_id: id,
         genre_id: genreId,
       }));
