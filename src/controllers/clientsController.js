@@ -15,12 +15,18 @@ export async function createClient(payload) {
     gender,
     lead_source,
     bought_with_partiu,
-    favorite_event_id = payload.favorite_event_id || payload.favorite_event,
+    favorite_event_id,
+    favorite_event,
     music_genres,
-    other_genre = payload.other_genre || payload.music_genre_other,
+    other_genre,
+    music_genre_other,
     last_event,
     birth_date,
   } = payload;
+
+  // Normaliza campos que o frontend pode enviar com nomes diferentes
+  const resolvedFavoriteEvent = favorite_event_id || favorite_event || null;
+  const resolvedOtherGenre = other_genre || music_genre_other || null;
 
   if (!name || !email || !phone) {
     throw new Error("name, email and phone are required");
@@ -40,24 +46,22 @@ export async function createClient(payload) {
   ===================== */
   let resolvedFavoriteEventId = null;
 
-  if (favorite_event_id) {
-    if (isUUID(favorite_event_id)) {
-      resolvedFavoriteEventId = favorite_event_id;
+  if (resolvedFavoriteEvent) {
+    if (isUUID(resolvedFavoriteEvent)) {
+      resolvedFavoriteEventId = resolvedFavoriteEvent;
     } else {
-      // Tenta buscar evento pelo nome
       const { data: existingEvent } = await supabase
         .from("events")
         .select("id")
-        .ilike("name", favorite_event_id)
+        .ilike("name", resolvedFavoriteEvent)
         .maybeSingle();
 
       if (existingEvent) {
         resolvedFavoriteEventId = existingEvent.id;
       } else {
-        // Cria novo evento
         const { data: newEvent, error: eventCreateError } = await supabase
           .from("events")
-          .insert([{ name: favorite_event_id }])
+          .insert([{ name: resolvedFavoriteEvent }])
           .select()
           .single();
 
@@ -96,8 +100,8 @@ export async function createClient(payload) {
 
   let genres = music_genres || [];
 
-  if (other_genre) {
-    genres.push(other_genre);
+  if (resolvedOtherGenre) {
+    genres.push(resolvedOtherGenre);
   }
 
   if (genres.length) {
@@ -105,7 +109,6 @@ export async function createClient(payload) {
       genres.map(async (genre) => {
         if (isUUID(genre)) return genre;
 
-        // Tenta buscar gênero pelo nome
         const { data: existingGenre } = await supabase
           .from("music_genres")
           .select("id")
@@ -114,7 +117,6 @@ export async function createClient(payload) {
 
         if (existingGenre) return existingGenre.id;
 
-        // Cria novo gênero
         const { data: newGenre, error: genreError } = await supabase
           .from("music_genres")
           .insert([{ name: genre }])
@@ -147,7 +149,6 @@ export async function createClient(payload) {
     let eventId = last_event;
 
     if (!isUUID(last_event)) {
-      // Tenta buscar evento pelo nome
       const { data: existingEvent } = await supabase
         .from("events")
         .select("id")
@@ -180,7 +181,8 @@ export async function createClient(payload) {
 
     if (eventError) throw eventError;
   }
-  return client;
+
+  return client; // ← retorna client para a rota conseguir acessar .id
 }
 
 /* ============================= */
@@ -275,17 +277,19 @@ export async function updateClient(id, payload) {
     lead_source,
     bought_with_partiu,
     favorite_event_id,
+    favorite_event,
     birth_date,
   } = payload;
 
-  /* Resolve favorite_event_id se for nome */
-  let resolvedFavoriteEventId = favorite_event_id;
+  const resolvedFavoriteEvent = favorite_event_id || favorite_event;
 
-  if (favorite_event_id !== undefined && !isUUID(favorite_event_id)) {
+  let resolvedFavoriteEventId = resolvedFavoriteEvent;
+
+  if (resolvedFavoriteEvent !== undefined && !isUUID(resolvedFavoriteEvent)) {
     const { data: existingEvent } = await supabase
       .from("events")
       .select("id")
-      .ilike("name", favorite_event_id)
+      .ilike("name", resolvedFavoriteEvent)
       .maybeSingle();
 
     if (existingEvent) {
@@ -293,7 +297,7 @@ export async function updateClient(id, payload) {
     } else {
       const { data: newEvent, error: eventCreateError } = await supabase
         .from("events")
-        .insert([{ name: favorite_event_id }])
+        .insert([{ name: resolvedFavoriteEvent }])
         .select()
         .single();
 
