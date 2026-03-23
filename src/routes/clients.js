@@ -73,6 +73,16 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+router.patch("/:id", async (req, res) => {
+  try {
+    const updated = await updateClient(req.params.id, req.body);
+    res.json(updated);
+  } catch (err) {
+    console.error("PATCH /clients/:id error", err);
+    res.status(400).json({ message: err.message });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   try {
     await deleteClient(req.params.id);

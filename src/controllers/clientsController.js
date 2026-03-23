@@ -280,6 +280,7 @@ export async function updateClient(id, payload) {
     favorite_event_id,
     favorite_event,
     birth_date,
+    contacted,
   } = payload;
 
   const resolvedFavoriteEvent = favorite_event_id || favorite_event;
