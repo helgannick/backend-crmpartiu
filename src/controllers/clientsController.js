@@ -22,6 +22,7 @@ export async function createClient(payload) {
     music_genre_other,
     last_event,
     birth_date,
+    contacted,
   } = payload;
 
   // Normaliza campos que o frontend pode enviar com nomes diferentes
@@ -316,6 +317,7 @@ export async function updateClient(id, payload) {
     bought_with_partiu,
     favorite_event_id: resolvedFavoriteEventId,
     birth_date,
+    contacted,
   };
 
   const cleanFields = Object.fromEntries(
