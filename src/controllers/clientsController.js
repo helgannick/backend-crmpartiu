@@ -47,7 +47,7 @@ export async function createClient(payload) {
   ===================== */
   let resolvedFavoriteEventId = null;
 
-  if (resolvedFavoriteEvent) {
+  if (resolvedFavoriteEvent && !isUUID(resolvedFavoriteEvent)) {
     if (isUUID(resolvedFavoriteEvent)) {
       resolvedFavoriteEventId = resolvedFavoriteEvent;
     } else {
@@ -287,7 +287,8 @@ export async function updateClient(id, payload) {
 
   let resolvedFavoriteEventId = resolvedFavoriteEvent;
 
-  if (resolvedFavoriteEvent !== undefined && !isUUID(resolvedFavoriteEvent)) {
+  if (resolvedFavoriteEvent !== undefined && resolvedFavoriteEvent !== null && !isUUID(resolvedFavoriteEvent)) {
+
     const { data: existingEvent } = await supabase
       .from("events")
       .select("id")
