@@ -33,6 +33,34 @@ router.post("/", async (req, res) => {
 });
 
 
+router.post("/bulk", async (req, res) => {
+  const { clients } = req.body;
+
+  if (!Array.isArray(clients) || clients.length === 0) {
+    return res.status(400).json({ message: "clients must be a non-empty array" });
+  }
+
+  const allowed = ["name", "email", "phone", "city", "gender", "instagram", "birth_date", "lead_source", "bought_with_partiu"];
+  const rows = clients.map((c) =>
+    Object.fromEntries(Object.entries(c).filter(([k]) => allowed.includes(k)))
+  );
+
+  const { data, error } = await supabase
+    .from("clients")
+    .upsert(rows, { onConflict: "email", ignoreDuplicates: true })
+    .select("id");
+
+  if (error) {
+    console.error("POST /clients/bulk error", error);
+    return res.status(500).json({ message: error.message });
+  }
+
+  return res.status(200).json({
+    created: data.length,
+    skipped: clients.length - data.length,
+  });
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const data = await getClientById(req.params.id);
