@@ -1,10 +1,11 @@
 // src/routes/public.js
 import express from 'express';
 import { createClient } from '../controllers/clientsController.js';
+import { publicRegister } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', publicRegister, async (req, res) => {
   try {
     const client = await createClient(req.body, 'public');
     return res.status(201).json({

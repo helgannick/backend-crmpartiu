@@ -132,6 +132,24 @@ await fetch('https://backend-crmpartiu.onrender.com/auth/logout', {
 
 ---
 
+## Rate Limiting
+
+| Limiter | Rota | Limite | Janela |
+|---------|------|--------|--------|
+| `general` | todas as rotas | 100 req | 15 min |
+| `login` | `POST /auth/login` | 10 req | 15 min |
+| `publicRegister` | `POST /public/register` | 5 req | 1 hora |
+| `dashboard` | `GET /dashboard/*` | 60 req | 1 min |
+
+Resposta ao exceder o limite — status `429`:
+```json
+{ "message": "Muitas requisições. Tente novamente em X minutos." }
+```
+
+Headers retornados: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`.
+
+---
+
 ## Row Level Security (RLS)
 
 ### Como aplicar as migrations
@@ -192,6 +210,28 @@ Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New 
 - `musicGenresController` usa `supabase` (anon) — leitura pública
 - `authMiddleware` expõe `req.user.accessToken` para uso futuro com `getSupabaseForUser`
 - Adicionados `GET /auth/me` e `GET /auth/session`
+
+### 2026-04-18 — Rate Limiting
+
+**Problema:** Endpoints públicos e de login vulneráveis a brute force e spam.
+
+**Solução:**
+- Criado `src/middleware/rateLimiter.js` com 4 limiters (`general`, `login`, `publicRegister`, `dashboard`)
+- `general` aplicado globalmente em `server.js`
+- `login` aplicado em `POST /auth/login`
+- `publicRegister` aplicado em `POST /public/register`
+- `dashboard` aplicado em todos os endpoints `GET /dashboard/*`
+
+**Arquivos alterados:**
+- `src/middleware/rateLimiter.js` — novo
+- `src/server.js` — limiter global
+- `src/routes/auth.js` — limiter de login
+- `src/routes/public.js` — limiter de registro
+- `src/routes/dashboard.js` — limiter de dashboard
+
+---
+
+### 2026-04-18 — Row Level Security
 
 **Arquivos alterados:**
 - `migrations/001_enable_rls.sql` — novo

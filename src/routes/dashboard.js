@@ -1,4 +1,5 @@
 import express from "express";
+import { dashboard as dashboardLimiter } from "../middleware/rateLimiter.js";
 import {
   getTotalClients,
   getNewClientsWeek,
@@ -11,6 +12,8 @@ import {
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
+
+router.use(dashboardLimiter);
 
 router.get("/total", async (req, res) => {
   try {
