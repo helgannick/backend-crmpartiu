@@ -401,3 +401,36 @@ Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New 
 **Arquivos alterados:**
 - `src/controllers/dashboardController.js` — 5 novas funções
 - `src/routes/dashboard.js` — 5 novas rotas
+
+---
+
+### 2026-04-18 — Testes unitários e de integração com Jest
+
+**Problema:** Sem testes = mudanças quebram código sem aviso.
+
+**Solução:** 30 testes em 5 suites usando Jest + Supertest + `jest.unstable_mockModule` para ESM.
+
+| Suite | Tipo | Testes |
+|-------|------|--------|
+| `statusService` | Unitário | 7 — cobre todos os estágios de status |
+| `validate middleware` | Unitário | 6 — Zod validation, campos inválidos, opcionais |
+| `authMiddleware` | Unitário | 4 — token ausente, inválido, cookie vs. header |
+| `auth routes` | Integração | 7 — login, logout, /me com supertest |
+| `clients routes` | Integração | 6 — list, search, create, delete com mock do Supabase |
+
+**Como rodar:**
+```bash
+npm test                # todos os testes
+npm run test:watch      # modo watch
+npm run test:coverage   # cobertura de código
+```
+
+**Arquivos criados/alterados:**
+- `src/app.js` — novo (app Express sem listen, importado nos testes)
+- `src/server.js` — simplificado (só chama listen)
+- `jest.config.js` — novo
+- `tests/services/statusService.test.js` — novo
+- `tests/middleware/validate.test.js` — novo
+- `tests/middleware/authMiddleware.test.js` — novo
+- `tests/routes/auth.test.js` — novo
+- `tests/routes/clients.test.js` — novo
