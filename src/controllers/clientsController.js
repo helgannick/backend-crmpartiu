@@ -33,10 +33,6 @@ export async function createClient(payload) {
   const resolvedFavoriteEvent = favorite_event_id || favorite_event || null;
   const resolvedOtherGenre = other_genre || music_genre_other || null;
 
-  if (!name || !email || !phone) {
-    throw new Error("name, email and phone are required");
-  }
-
   const { data: existing } = await supabase
     .from("clients")
     .select("id")

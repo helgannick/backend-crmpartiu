@@ -1,5 +1,7 @@
 // src/routes/interactions.js
 import express from "express";
+import { validate } from "../middleware/validate.js";
+import { interactionCreateSchema } from "../schemas/interactionSchema.js";
 import {
   createInteraction,
   listInteractions
@@ -19,7 +21,7 @@ router.get("/:id/interactions", async (req, res) => {
 });
 
 // POST /clients/:id/interactions
-router.post("/:id/interactions", async (req, res) => {
+router.post("/:id/interactions", validate(interactionCreateSchema), async (req, res) => {
   try {
     const created = await createInteraction(req.params.id, req.body);
     return res.status(201).json(created);

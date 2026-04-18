@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "../supabase/supabaseClient.js";
 import express from "express";
+import { validate } from "../middleware/validate.js";
+import { clientCreateSchema, clientUpdateSchema, clientBulkSchema } from "../schemas/clientSchema.js";
 
 import {
   listClients,
@@ -22,7 +24,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", validate(clientCreateSchema), async (req, res) => {
   try {
     const client = await createClient(req.body, 'admin');
     res.status(201).json(client);
@@ -33,17 +35,20 @@ router.post("/", async (req, res) => {
 });
 
 
-router.post("/bulk", async (req, res) => {
+router.post("/bulk", validate(clientBulkSchema), async (req, res) => {
   const { clients } = req.body;
 
-  if (!Array.isArray(clients) || clients.length === 0) {
-    return res.status(400).json({ message: "clients must be a non-empty array" });
-  }
-
-  const allowed = ["name", "email", "phone", "city", "gender", "instagram", "birth_date", "lead_source", "bought_with_partiu"];
-  const rows = clients.map((c) =>
-    Object.fromEntries(Object.entries(c).filter(([k]) => allowed.includes(k)))
-  );
+  const rows = clients.map((c) => ({
+    name:               c.name,
+    email:              c.email,
+    phone:              c.phone,
+    city:               c.city,
+    gender:             c.gender,
+    instagram:          c.instagram,
+    birth_date:         c.birth_date,
+    lead_source:        c.lead_source,
+    bought_with_partiu: c.bought_with_partiu,
+  }));
 
   const { data, error } = await supabaseAdmin
     .from("clients")
@@ -91,7 +96,7 @@ router.get("/:id/status", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", validate(clientUpdateSchema), async (req, res) => {
   try {
     const updated = await updateClient(req.params.id, req.body);
     res.json(updated);
@@ -101,7 +106,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", validate(clientUpdateSchema), async (req, res) => {
   try {
     const updated = await updateClient(req.params.id, req.body);
     res.json(updated);
