@@ -33,5 +33,5 @@ export async function login(req, res) {
 
 export async function logout(req, res) {
   res.clearCookie('auth_token', COOKIE_OPTIONS);
-  return res.json({ message: 'Logout realizado com sucesso' });
+  return res.json({ success: true });
 }
