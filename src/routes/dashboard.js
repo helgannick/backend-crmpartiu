@@ -9,6 +9,11 @@ import {
   getStatusCount,
   getClientsByMonth,
   getClientsByCity,
+  getConversionFunnel,
+  getEngagementTrends,
+  getTopSources,
+  getInactiveClients,
+  getRetentionCohorts,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
@@ -85,6 +90,37 @@ router.get("/clients-by-city", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+});
+
+router.get("/conversion-funnel", async (req, res) => {
+  try { res.json(await getConversionFunnel()); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/engagement-trends", async (req, res) => {
+  try {
+    const months = Math.min(Number(req.query.months) || 6, 12);
+    res.json(await getEngagementTrends(months));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/top-sources", async (req, res) => {
+  try { res.json(await getTopSources()); }
+  catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/inactive-clients", async (req, res) => {
+  try {
+    const days = Math.min(Number(req.query.days) || 30, 365);
+    res.json(await getInactiveClients(days));
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/retention-cohorts", async (req, res) => {
+  try {
+    const months = Math.min(Number(req.query.months) || 6, 12);
+    res.json(await getRetentionCohorts(months));
+  } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;

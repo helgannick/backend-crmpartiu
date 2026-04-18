@@ -147,6 +147,206 @@ export async function getClientsByMonth() {
 }
 
 
+/* ============================= */
+/* CONVERSION FUNNEL             */
+/* ============================= */
+
+export async function getConversionFunnel() {
+  const { data, error } = await withoutDeleted(
+    supabase.from('clients').select('status')
+  );
+  if (error) throw error;
+
+  const counts = { novo: 0, engajando: 0, recorrente: 0, vip: 0 };
+  (data || []).forEach(({ status }) => {
+    if (status in counts) counts[status]++;
+  });
+
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const pct = (a, b) => (b > 0 ? +((a / b) * 100).toFixed(1) : 0);
+
+  return {
+    ...counts,
+    total,
+    conversion_rate: {
+      novo_to_engajando: pct(counts.engajando, counts.novo),
+      engajando_to_recorrente: pct(counts.recorrente, counts.engajando),
+      recorrente_to_vip: pct(counts.vip, counts.recorrente),
+    },
+  };
+}
+
+/* ============================= */
+/* ENGAGEMENT TRENDS             */
+/* ============================= */
+
+export async function getEngagementTrends(months = 6) {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+
+  const { data, error } = await supabase
+    .from('interactions')
+    .select('client_id, created_at')
+    .gte('created_at', since.toISOString());
+
+  if (error) throw error;
+
+  const byMonth = {};
+  (data || []).forEach(({ client_id, created_at }) => {
+    const key = created_at.slice(0, 7); // YYYY-MM
+    if (!byMonth[key]) byMonth[key] = { clients: new Set(), count: 0 };
+    byMonth[key].clients.add(client_id);
+    byMonth[key].count++;
+  });
+
+  const result = Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, { clients, count }]) => ({
+      month,
+      active_clients: clients.size,
+      avg_interactions: clients.size > 0 ? +(count / clients.size).toFixed(1) : 0,
+    }));
+
+  return result;
+}
+
+/* ============================= */
+/* TOP SOURCES                   */
+/* ============================= */
+
+export async function getTopSources() {
+  const { data, error } = await withoutDeleted(
+    supabase.from('clients').select('lead_source')
+  );
+  if (error) throw error;
+
+  const map = {};
+  let total = 0;
+  (data || []).forEach(({ lead_source }) => {
+    const key = lead_source || 'Não informado';
+    map[key] = (map[key] || 0) + 1;
+    total++;
+  });
+
+  return Object.entries(map)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([source, count]) => ({
+      source,
+      count,
+      percentage: total > 0 ? +((count / total) * 100).toFixed(1) : 0,
+    }));
+}
+
+/* ============================= */
+/* INACTIVE CLIENTS              */
+/* ============================= */
+
+export async function getInactiveClients(days = 30) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  const [{ data: clients, error: cErr }, { data: recentInteractions, error: iErr }] =
+    await Promise.all([
+      withoutDeleted(supabase.from('clients').select('id, name, created_at')),
+      supabase.from('interactions').select('client_id').gte('created_at', since),
+    ]);
+
+  if (cErr) throw cErr;
+  if (iErr) throw iErr;
+
+  const activeIds = new Set((recentInteractions || []).map((i) => i.client_id));
+  const inactive = (clients || []).filter((c) => !activeIds.has(c.id));
+
+  // Get last interaction date for inactive clients
+  const { data: lastInteractions } = await supabase
+    .from('interactions')
+    .select('client_id, created_at')
+    .in('client_id', inactive.map((c) => c.id))
+    .order('created_at', { ascending: false });
+
+  const lastByClient = {};
+  (lastInteractions || []).forEach(({ client_id, created_at }) => {
+    if (!lastByClient[client_id]) lastByClient[client_id] = created_at;
+  });
+
+  const now = Date.now();
+  const enriched = inactive
+    .map((c) => {
+      const last = lastByClient[c.id] || null;
+      const daysInactive = last
+        ? Math.floor((now - new Date(last).getTime()) / 86400000)
+        : Math.floor((now - new Date(c.created_at).getTime()) / 86400000);
+      return { id: c.id, name: c.name, last_interaction: last, days_inactive: daysInactive };
+    })
+    .sort((a, b) => b.days_inactive - a.days_inactive)
+    .slice(0, 20);
+
+  const total = (clients || []).length;
+
+  return {
+    count: inactive.length,
+    percentage: total > 0 ? +((inactive.length / total) * 100).toFixed(1) : 0,
+    clients: enriched,
+  };
+}
+
+/* ============================= */
+/* RETENTION COHORTS             */
+/* ============================= */
+
+export async function getRetentionCohorts(months = 6) {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+
+  const [{ data: clients, error: cErr }, { data: interactions, error: iErr }] =
+    await Promise.all([
+      withoutDeleted(supabase.from('clients').select('id, created_at'))
+        .gte('created_at', since.toISOString()),
+      supabase.from('interactions').select('client_id, created_at'),
+    ]);
+
+  if (cErr) throw cErr;
+  if (iErr) throw iErr;
+
+  // Index interactions by client_id
+  const interactionsByClient = {};
+  (interactions || []).forEach(({ client_id, created_at }) => {
+    if (!interactionsByClient[client_id]) interactionsByClient[client_id] = [];
+    interactionsByClient[client_id].push(new Date(created_at).getTime());
+  });
+
+  const cohorts = {};
+  (clients || []).forEach(({ id, created_at }) => {
+    const key = created_at.slice(0, 7);
+    if (!cohorts[key]) cohorts[key] = [];
+    cohorts[key].push({ id, signupTs: new Date(created_at).getTime() });
+  });
+
+  const result = Object.entries(cohorts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([cohort, members]) => {
+      const retained = (window_days) =>
+        members.filter(({ id, signupTs }) => {
+          const ts = interactionsByClient[id];
+          return ts?.some((t) => t >= signupTs && t <= signupTs + window_days * 86400000);
+        }).length;
+
+      return {
+        cohort,
+        total: members.length,
+        retained_30d: retained(30),
+        retained_60d: retained(60),
+        retained_90d: retained(90),
+      };
+    });
+
+  return result;
+}
+
+/* ============================= */
+/* getClientsByCity              */
+/* ============================= */
+
 export async function getClientsByCity() {
   const { data, error } = await withoutDeleted(
     supabase.from("clients").select("city")
