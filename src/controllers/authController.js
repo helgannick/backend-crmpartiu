@@ -35,3 +35,7 @@ export async function logout(req, res) {
   res.clearCookie('auth_token', COOKIE_OPTIONS);
   return res.json({ success: true });
 }
+
+export async function me(req, res) {
+  return res.json({ user: req.user });
+}
