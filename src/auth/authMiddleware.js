@@ -1,12 +1,13 @@
 import { supabase } from '../supabase/supabaseClient.js';
 
 export async function authMiddleware(req, res, next) {
+  const cookieToken = req.cookies?.auth_token;
   const authHeader = req.headers.authorization;
 
-  if (!authHeader)
-    return res.status(401).json({ message: 'Token não fornecido' });
+  const token = cookieToken || authHeader?.replace('Bearer ', '');
 
-  const token = authHeader.replace('Bearer ', '');
+  if (!token)
+    return res.status(401).json({ message: 'Token não fornecido' });
 
   const { data, error } = await supabase.auth.getUser(token);
 
