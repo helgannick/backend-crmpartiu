@@ -10,6 +10,7 @@ import interactionsRoutes from './routes/interactions.js';
 import { authMiddleware } from './auth/authMiddleware.js';
 import dashboardRoutes from './routes/dashboard.js';
 import musicGenresRoutes from "./routes/musicGenres.js";
+import auditRoutes from "./routes/audit.js";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/music-genres", musicGenresRoutes);
 app.use('/clients', authMiddleware, clientsRoutes);
 app.use('/clients', authMiddleware, interactionsRoutes);
 app.use("/dashboard", authMiddleware, dashboardRoutes);
+app.use("/audit", authMiddleware, auditRoutes);
 
 
 const PORT = process.env.PORT || 3001;

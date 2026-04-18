@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "../supabase/supabaseClient.js";
 import { withoutDeleted, onlyDeleted, softDelete, restore } from "../utils/softDelete.js";
+import { logAction } from "../services/auditService.js";
 
 // clientsController usa supabaseAdmin: operações tocam lookup tables (events, music_genres)
 // que exigem bypass de RLS para criar registros dinamicamente via importação/registro público
@@ -11,7 +12,7 @@ const isUUID = (val) => /^[0-9a-fA-F-]{36}$/.test(val);
 /* CREATE CLIENT */
 /* ============================= */
 
-export async function createClient(payload) {
+export async function createClient(payload, user = null) {
   const {
     name,
     email,
@@ -184,6 +185,8 @@ export async function createClient(payload) {
     if (eventError) throw eventError;
   }
 
+  logAction({ tableName: 'clients', recordId: client.id, action: 'INSERT', newValues: client, user });
+
   return client; // ← retorna client para a rota conseguir acessar .id
 }
 
@@ -267,7 +270,7 @@ export async function listClientsFiltered(query) {
 /* UPDATE CLIENT (BLINDADO) */
 /* ============================= */
 
-export async function updateClient(id, payload) {
+export async function updateClient(id, payload, user = null) {
   const {
     music_genres,
     name,
@@ -282,6 +285,9 @@ export async function updateClient(id, payload) {
     birth_date,
     contacted,
   } = payload;
+
+  // captura estado anterior para audit log
+  const { data: oldClient } = await supabase.from("clients").select("*").eq("id", id).maybeSingle();
 
   const resolvedFavoriteEvent = favorite_event_id || favorite_event;
 
@@ -378,22 +384,27 @@ export async function updateClient(id, payload) {
     }
   }
 
-  return await getClientById(id);
+  const updated = await getClientById(id);
+  logAction({ tableName: 'clients', recordId: id, action: 'UPDATE', oldValues: oldClient, newValues: updated, user });
+  return updated;
 }
 
 /* ============================= */
 /* DELETE CLIENT */
 /* ============================= */
 
-export async function deleteClient(id) {
+export async function deleteClient(id, user = null) {
+  const { data: oldClient } = await supabase.from("clients").select("*").eq("id", id).maybeSingle();
   const { error } = await softDelete(supabase, 'clients', id);
   if (error) throw error;
+  logAction({ tableName: 'clients', recordId: id, action: 'DELETE', oldValues: oldClient, user });
   return true;
 }
 
-export async function restoreClient(id) {
+export async function restoreClient(id, user = null) {
   const { error } = await restore(supabase, 'clients', id);
   if (error) throw error;
+  logAction({ tableName: 'clients', recordId: id, action: 'INSERT', newValues: { restored: true }, user });
   return true;
 }
 

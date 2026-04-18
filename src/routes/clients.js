@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", validate(clientCreateSchema), async (req, res) => {
   try {
-    const client = await createClient(req.body, 'admin');
+    const client = await createClient(req.body, req.user);
     res.status(201).json(client);
   } catch (err) {
     console.error("POST /clients error", err);
@@ -109,7 +109,7 @@ router.get("/:id/status", async (req, res) => {
 
 router.put("/:id", validate(clientUpdateSchema), async (req, res) => {
   try {
-    const updated = await updateClient(req.params.id, req.body);
+    const updated = await updateClient(req.params.id, req.body, req.user);
     res.json(updated);
   } catch (err) {
     console.error("PUT /clients/:id error", err);
@@ -119,7 +119,7 @@ router.put("/:id", validate(clientUpdateSchema), async (req, res) => {
 
 router.patch("/:id", validate(clientUpdateSchema), async (req, res) => {
   try {
-    const updated = await updateClient(req.params.id, req.body);
+    const updated = await updateClient(req.params.id, req.body, req.user);
     res.json(updated);
   } catch (err) {
     console.error("PATCH /clients/:id error", err);
@@ -129,7 +129,7 @@ router.patch("/:id", validate(clientUpdateSchema), async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    await deleteClient(req.params.id);
+    await deleteClient(req.params.id, req.user);
     res.status(204).send();
   } catch (err) {
     console.error("DELETE /clients/:id error", err);
@@ -139,7 +139,7 @@ router.delete("/:id", async (req, res) => {
 
 router.post("/:id/restore", async (req, res) => {
   try {
-    await restoreClient(req.params.id);
+    await restoreClient(req.params.id, req.user);
     res.json({ success: true });
   } catch (err) {
     console.error("POST /clients/:id/restore error", err);
