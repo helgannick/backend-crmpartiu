@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../supabase/supabaseClient.js';
+import { withoutDeleted, softDelete } from '../utils/softDelete.js';
 const supabase = supabaseAdmin;
 import { calculateStatus } from '../services/statusService.js';
 
@@ -34,12 +35,16 @@ export async function createInteraction(clientId, payload) {
 
 
 export async function listInteractions(clientId) {
-  const { data, error } = await supabase
-    .from("interactions")
-    .select("*")
-    .eq("client_id", clientId)
-    .order("created_at", { ascending: false });
+  const { data, error } = await withoutDeleted(
+    supabase.from("interactions").select("*").eq("client_id", clientId)
+  ).order("created_at", { ascending: false });
 
   if (error) throw error;
   return data;
+}
+
+export async function deleteInteraction(interactionId) {
+  const { error } = await softDelete(supabase, 'interactions', interactionId);
+  if (error) throw error;
+  return true;
 }

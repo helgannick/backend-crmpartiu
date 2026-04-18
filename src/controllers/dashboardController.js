@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../supabase/supabaseClient.js";
+import { withoutDeleted } from "../utils/softDelete.js";
 const supabase = supabaseAdmin;
 
 function normalizeCity(city) {
@@ -25,9 +26,9 @@ function normalizeCity(city) {
 
 
 export async function getTotalClients() {
-  const { count, error } = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true });
+  const { count, error } = await withoutDeleted(
+    supabase.from("clients").select("*", { count: "exact", head: true })
+  );
 
   if (error) throw error;
   return count || 0;
@@ -36,38 +37,33 @@ export async function getTotalClients() {
 export async function getNewClientsWeek() {
   const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const { count, error } = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", lastWeek);
+  const { count, error } = await withoutDeleted(
+    supabase.from("clients").select("*", { count: "exact", head: true })
+  ).gte("created_at", lastWeek);
 
   if (error) throw error;
   return count || 0;
 }
-
 
 export async function getNewClientsMonth() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const { count, error } = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", firstDay);
+  const { count, error } = await withoutDeleted(
+    supabase.from("clients").select("*", { count: "exact", head: true })
+  ).gte("created_at", firstDay);
 
   if (error) throw error;
   return count || 0;
 }
 
-
 export async function getBirthdaysThisMonth() {
   const now = new Date();
   const month = now.getMonth() + 1;
 
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .not("birth_date", "is", null);
+  const { data, error } = await withoutDeleted(
+    supabase.from("clients").select("*")
+  ).not("birth_date", "is", null);
 
   if (error) throw error;
 
@@ -88,26 +84,22 @@ export async function getBirthdaysThisMonth() {
 
 
 export async function getRecentClients() {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, name, email, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const { data, error } = await withoutDeleted(
+    supabase.from("clients").select("id, name, email, created_at")
+  ).order("created_at", { ascending: false }).limit(5);
 
   if (error) throw error;
   return data || [];
 }
 
 export async function getStatusCount() {
-  const activeQuery = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "active");
+  const activeQuery = await withoutDeleted(
+    supabase.from("clients").select("*", { count: "exact", head: true })
+  ).eq("status", "active");
 
-  const inactiveQuery = await supabase
-    .from("clients")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "inactive");
+  const inactiveQuery = await withoutDeleted(
+    supabase.from("clients").select("*", { count: "exact", head: true })
+  ).eq("status", "inactive");
 
   if (activeQuery.error) throw activeQuery.error;
   if (inactiveQuery.error) throw inactiveQuery.error;
@@ -125,11 +117,9 @@ export async function getClientsByMonth() {
   const start = new Date(year, 0, 1).toISOString();
   const end = new Date(year, 11, 31, 23, 59, 59).toISOString();
 
-  const { data, error } = await supabase
-    .from("clients")
-    .select("created_at")
-    .gte("created_at", start)
-    .lte("created_at", end);
+  const { data, error } = await withoutDeleted(
+    supabase.from("clients").select("created_at")
+  ).gte("created_at", start).lte("created_at", end);
 
   if (error) throw error;
 
@@ -158,9 +148,9 @@ export async function getClientsByMonth() {
 
 
 export async function getClientsByCity() {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("city");
+  const { data, error } = await withoutDeleted(
+    supabase.from("clients").select("city")
+  );
 
   if (error) throw error;
 

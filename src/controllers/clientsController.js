@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "../supabase/supabaseClient.js";
+import { withoutDeleted, onlyDeleted, softDelete, restore } from "../utils/softDelete.js";
 
 // clientsController usa supabaseAdmin: operações tocam lookup tables (events, music_genres)
 // que exigem bypass de RLS para criar registros dinamicamente via importação/registro público
@@ -191,10 +192,9 @@ export async function createClient(payload) {
 /* ============================= */
 
 export async function listClients() {
-  const { data, error } = await supabase
-    .from("clients")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const { data, error } = await withoutDeleted(
+    supabase.from("clients").select("*")
+  ).order("created_at", { ascending: false });
 
   if (error) throw error;
   return data || [];
@@ -233,7 +233,7 @@ export async function listClientsFiltered(query) {
 
   const offset = (page - 1) * limit;
 
-  let supa = supabase.from("clients").select("*", { count: "exact" });
+  let supa = withoutDeleted(supabase.from("clients").select("*", { count: "exact" }));
 
   if (search) {
     supa = supa.or(
@@ -386,15 +386,22 @@ export async function updateClient(id, payload) {
 /* ============================= */
 
 export async function deleteClient(id) {
-  await supabase.from("client_music_genres").delete().eq("client_id", id);
-  await supabase.from("client_events").delete().eq("client_id", id);
+  const { error } = await softDelete(supabase, 'clients', id);
+  if (error) throw error;
+  return true;
+}
 
-  const { error } = await supabase
-    .from("clients")
-    .delete()
-    .eq("id", id);
+export async function restoreClient(id) {
+  const { error } = await restore(supabase, 'clients', id);
+  if (error) throw error;
+  return true;
+}
+
+export async function listDeletedClients() {
+  const { data, error } = await onlyDeleted(
+    supabase.from("clients").select("*")
+  ).order("deleted_at", { ascending: false });
 
   if (error) throw error;
-
-  return true;
+  return data || [];
 }

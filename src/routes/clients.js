@@ -8,11 +8,22 @@ import {
   getClientById,
   updateClient,
   deleteClient,
+  restoreClient,
+  listDeletedClients,
   listClientsFiltered,
   createClient
 } from "../controllers/clientsController.js";
 
 const router = express.Router();
+
+router.get("/deleted", async (req, res) => {
+  try {
+    const data = await listDeletedClients();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -122,6 +133,16 @@ router.delete("/:id", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     console.error("DELETE /clients/:id error", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/:id/restore", async (req, res) => {
+  try {
+    await restoreClient(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("POST /clients/:id/restore error", err);
     res.status(500).json({ message: err.message });
   }
 });
