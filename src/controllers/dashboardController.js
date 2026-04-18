@@ -153,13 +153,27 @@ export async function getClientsByMonth() {
 
 export async function getConversionFunnel() {
   const { data, error } = await withoutDeleted(
-    supabase.from('clients').select('status')
+    supabase.from('clients').select(`
+      id,
+      bought_with_partiu,
+      client_events!client_events_client_id_fkey (event_id)
+    `)
   );
   if (error) throw error;
 
   const counts = { novo: 0, engajando: 0, recorrente: 0, vip: 0 };
-  (data || []).forEach(({ status }) => {
-    if (status in counts) counts[status]++;
+
+  (data || []).forEach((c) => {
+    const eventCount = c.client_events?.length ?? 0;
+    if (c.bought_with_partiu) {
+      counts.vip++;
+    } else if (eventCount >= 3) {
+      counts.recorrente++;
+    } else if (eventCount >= 1) {
+      counts.engajando++;
+    } else {
+      counts.novo++;
+    }
   });
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);

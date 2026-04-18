@@ -212,12 +212,12 @@ export async function getClientById(id) {
     .from("clients")
     .select(`
       *,
-      favorite_event:favorite_event_id (*),
-      client_music_genres (
-        music_genres (*)
+      favorite_event:events!clients_favorite_event_id_fkey (*),
+      client_music_genres!client_music_genres_client_id_fkey (
+        music_genres!client_music_genres_genre_id_fkey (*)
       ),
-      client_events (
-        events (*)
+      client_events!client_events_client_id_fkey (
+        events!client_events_event_id_fkey (*)
       )
     `)
     .eq("id", id)
