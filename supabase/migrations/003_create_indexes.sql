@@ -21,9 +21,16 @@ CREATE INDEX IF NOT EXISTS idx_clients_birth_date
 CREATE INDEX IF NOT EXISTS idx_clients_created_at
   ON clients(created_at DESC);
 
--- Filtro por status (dashboard ativo/inativo)
-CREATE INDEX IF NOT EXISTS idx_clients_status
-  ON clients(status);
+-- Filtro por status (dashboard ativo/inativo) — apenas se coluna existir
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'clients' AND column_name = 'status'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status);
+  END IF;
+END $$;
 
 -- JOIN interactions → clients (listagem e contagem)
 CREATE INDEX IF NOT EXISTS idx_interactions_client_id
