@@ -381,3 +381,23 @@ Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New 
 **Arquivos alterados:**
 - `src/controllers/authController.js` — cookie refresh_token no login/logout + função `refresh`
 - `src/routes/auth.js` — rota `POST /auth/refresh`
+
+---
+
+### 2026-04-18 — Dashboard de métricas avançadas
+
+**Problema:** Dashboard limitado a totais simples; sem visão de conversão, engajamento ou retenção.
+
+**Solução — 5 novos endpoints:**
+
+| Endpoint | Descrição |
+|----------|-----------|
+| `GET /dashboard/conversion-funnel` | Distribuição por status + taxas de conversão entre estágios |
+| `GET /dashboard/engagement-trends?months=6` | Clientes ativos e média de interações por mês |
+| `GET /dashboard/top-sources` | Top 5 origens de leads com contagem e percentual |
+| `GET /dashboard/inactive-clients?days=30` | Clientes sem interação há N dias + last interaction |
+| `GET /dashboard/retention-cohorts?months=6` | Retenção 30/60/90 dias por coorte de cadastro |
+
+**Arquivos alterados:**
+- `src/controllers/dashboardController.js` — 5 novas funções
+- `src/routes/dashboard.js` — 5 novas rotas
