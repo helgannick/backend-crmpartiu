@@ -86,8 +86,9 @@ Execute no SQL Editor e reaplique as migrations do zero.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| POST | `/auth/login` | Não | Login — seta cookie httpOnly |
-| POST | `/auth/logout` | Não | Logout — limpa cookie |
+| POST | `/auth/login` | Não | Login — seta cookies httpOnly (`auth_token` + `refresh_token`) |
+| POST | `/auth/logout` | Não | Logout — limpa ambos os cookies |
+| POST | `/auth/refresh` | Não | Renova `auth_token` via `refresh_token` |
 | GET | `/auth/me` | Sim | Retorna usuário autenticado |
 | GET | `/auth/session` | Sim | Retorna sessão completa do Supabase |
 
@@ -142,14 +143,14 @@ Execute no SQL Editor e reaplique as migrations do zero.
 3. Todas as requisições seguintes enviam o cookie automaticamente (`credentials: 'include'`)
 4. O `authMiddleware` lê o cookie (fallback para `Authorization: Bearer <token>`)
 
-### Cookie `auth_token`
+### Cookies de autenticação
 
-| Atributo | Valor |
-|----------|-------|
-| `httpOnly` | true |
-| `secure` | true (apenas em produção) |
-| `sameSite` | strict |
-| `maxAge` | 7 dias |
+| Cookie | `maxAge` | `path` | Descrição |
+|--------|----------|--------|-----------|
+| `auth_token` | 7 dias | `/` | JWT de acesso — enviado em todas as requisições |
+| `refresh_token` | 30 dias | `/auth/refresh` | Token de renovação — escopo mínimo |
+
+Ambos com `httpOnly: true`, `secure: true` (produção), `sameSite: strict`.
 
 ### Exemplo de uso no frontend
 
@@ -308,3 +309,75 @@ Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New 
 - `src/controllers/interactionsController.js` — importa supabaseAdmin
 - `src/controllers/dashboardController.js` — importa supabaseAdmin
 - `src/routes/clients.js` — usa supabaseAdmin inline
+
+---
+
+### 2026-04-18 — Validação de inputs com Zod
+
+**Problema:** Entradas do usuário chegavam ao banco sem validação, risco de dados inválidos e crashes.
+
+**Solução:**
+- Criado `src/middleware/validate.js` — middleware genérico que chama `schema.parseAsync(req.body)` e retorna 400 com detalhes de campo em caso de erro (Zod v4: usa `.issues`, não `.errors`)
+- Criados schemas `clientCreateSchema`, `clientUpdateSchema`, `clientBulkSchema` em `src/schemas/clientSchema.js`
+- Validação aplicada em `POST /clients`, `PUT /clients/:id`, `PATCH /clients/:id`, `POST /clients/bulk`
+
+**Arquivos criados/alterados:**
+- `src/middleware/validate.js` — novo
+- `src/schemas/clientSchema.js` — novo
+- `src/routes/clients.js` — validate() nos endpoints de escrita
+
+---
+
+### 2026-04-18 — Soft delete e restore de clientes
+
+**Problema:** DELETE permanente impede recuperação de registros excluídos por engano.
+
+**Solução:**
+- `supabase/migrations/005_add_soft_delete.sql` — adiciona coluna `deleted_at` (nullable) nas tabelas `clients` e `interactions` com índice
+- Criado `src/utils/softDelete.js` com helpers `withoutDeleted`, `onlyDeleted`, `softDelete`, `restore`
+- `DELETE /clients/:id` agora faz soft delete (seta `deleted_at`)
+- `POST /clients/:id/restore` restaura o cliente
+- `GET /clients/deleted` lista clientes excluídos
+- `GET /clients` e `GET /clients/:id` filtram `deleted_at IS NULL`
+
+**Arquivos criados/alterados:**
+- `supabase/migrations/005_add_soft_delete.sql` — novo
+- `src/utils/softDelete.js` — novo
+- `src/controllers/clientsController.js` — soft delete em delete/restore/list
+- `src/routes/clients.js` — rota /deleted e /restore
+
+---
+
+### 2026-04-18 — Audit log de operações
+
+**Problema:** Sem rastreabilidade de quem criou, alterou ou excluiu registros.
+
+**Solução:**
+- `supabase/migrations/006_create_audit_log.sql` — tabela `audit_logs` com `table_name`, `record_id`, `action`, `old_values`, `new_values`, `user_id`, `user_email`, `created_at`; 4 índices
+- Criado `src/services/auditService.js` — `logAction()` fire-and-forget (falha nunca quebra a operação principal)
+- `logAction` chamado em create, update, delete e restore de clientes
+- Criado `src/routes/audit.js` com:
+  - `GET /audit/clients/:id/history` — histórico de um cliente
+  - `GET /audit/logs` — logs gerais com filtros por `table`, `user_id`, `action` e paginação
+
+**Arquivos criados/alterados:**
+- `supabase/migrations/006_create_audit_log.sql` — novo
+- `src/services/auditService.js` — novo
+- `src/routes/audit.js` — novo
+- `src/server.js` — rota `/audit` registrada
+- `src/controllers/clientsController.js` — logAction nos CRUD
+
+---
+
+### 2026-04-18 — Refresh automático de token JWT
+
+**Problema:** `access_token` expira após ~1h; sem renovação o usuário era deslogado.
+
+**Solução:**
+- Login agora seta dois cookies: `auth_token` (7 dias) e `refresh_token` (30 dias, path `/auth/refresh`)
+- Logout limpa ambos os cookies
+- `POST /auth/refresh` lê `refresh_token`, chama `supabase.auth.refreshSession()` e seta novos cookies
+
+**Arquivos alterados:**
+- `src/controllers/authController.js` — cookie refresh_token no login/logout + função `refresh`
+- `src/routes/auth.js` — rota `POST /auth/refresh`
