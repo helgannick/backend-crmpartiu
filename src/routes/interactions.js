@@ -10,6 +10,72 @@ import {
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Interactions
+ *   description: Histórico de interações com clientes
+ *
+ * /clients/{id}/interactions:
+ *   get:
+ *     summary: Listar interações de um cliente
+ *     tags: [Interactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lista de interações
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items: { $ref: '#/components/schemas/Interaction' }
+ *   post:
+ *     summary: Registrar nova interação
+ *     tags: [Interactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [type]
+ *             properties:
+ *               type: { type: string, example: whatsapp }
+ *               note: { type: string, example: Cliente confirmou presença }
+ *     responses:
+ *       201:
+ *         description: Interação criada
+ *         content:
+ *           application/json:
+ *             schema: { $ref: '#/components/schemas/Interaction' }
+ *
+ * /clients/{id}/interactions/{interactionId}:
+ *   delete:
+ *     summary: Remover interação
+ *     tags: [Interactions]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: interactionId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       204:
+ *         description: Removida com sucesso
+ */
+
 // GET /clients/:id/interactions
 router.get("/:id/interactions", async (req, res) => {
   try {

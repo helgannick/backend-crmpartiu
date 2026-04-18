@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './docs/swagger.js';
 import { general } from './middleware/rateLimiter.js';
 
 import publicRoutes from './routes/public.js';
@@ -23,6 +25,8 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use(general);
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, { customSiteTitle: 'CRM Partiu API' }));
 
 app.use('/public', publicRoutes);
 app.use('/auth', authRoutes);
