@@ -4,7 +4,15 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias em ms
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+};
+
+const REFRESH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
+  path: '/auth/refresh',
 };
 
 export async function login(req, res) {
@@ -21,6 +29,7 @@ export async function login(req, res) {
   }
 
   res.cookie('auth_token', data.session.access_token, COOKIE_OPTIONS);
+  res.cookie('refresh_token', data.session.refresh_token, REFRESH_COOKIE_OPTIONS);
 
   return res.json({
     user: {
@@ -33,6 +42,28 @@ export async function login(req, res) {
 
 export async function logout(req, res) {
   res.clearCookie('auth_token', COOKIE_OPTIONS);
+  res.clearCookie('refresh_token', REFRESH_COOKIE_OPTIONS);
+  return res.json({ success: true });
+}
+
+export async function refresh(req, res) {
+  const refreshTokenValue = req.cookies?.refresh_token;
+
+  if (!refreshTokenValue) {
+    return res.status(401).json({ message: 'Refresh token ausente' });
+  }
+
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshTokenValue });
+
+  if (error || !data?.session) {
+    res.clearCookie('auth_token', COOKIE_OPTIONS);
+    res.clearCookie('refresh_token', REFRESH_COOKIE_OPTIONS);
+    return res.status(401).json({ message: 'Sessão expirada, faça login novamente' });
+  }
+
+  res.cookie('auth_token', data.session.access_token, COOKIE_OPTIONS);
+  res.cookie('refresh_token', data.session.refresh_token, REFRESH_COOKIE_OPTIONS);
+
   return res.json({ success: true });
 }
 

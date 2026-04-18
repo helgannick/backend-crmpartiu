@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, logout, me, session } from '../controllers/authController.js';
+import { login, logout, me, session, refresh } from '../controllers/authController.js';
 import { authMiddleware } from '../auth/authMiddleware.js';
 import { login as loginLimiter } from '../middleware/rateLimiter.js';
 
@@ -7,6 +7,7 @@ const router = Router();
 
 router.post('/login', loginLimiter, login);
 router.post('/logout', logout);
+router.post('/refresh', refresh);
 router.get('/me', authMiddleware, me);
 router.get('/session', authMiddleware, session);
 
