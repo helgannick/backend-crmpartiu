@@ -19,7 +19,8 @@ export async function authMiddleware(req, res, next) {
   req.user = {
     id: data.user.id,
     email: data.user.email,
-    role: data.user.user_metadata?.role || 'staff'
+    role: data.user.user_metadata?.role || 'staff',
+    accessToken: token,
   };
 
   next();

@@ -1,4 +1,5 @@
-import { supabase } from "../supabase/supabaseClient.js";
+import { supabaseAdmin } from "../supabase/supabaseClient.js";
+const supabase = supabaseAdmin;
 
 function normalizeCity(city) {
   if (!city) return null;

@@ -1,4 +1,4 @@
-import { supabase } from '../supabase/supabaseClient.js';
+import { supabaseAdmin as supabase } from '../supabase/supabaseClient.js';
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -38,4 +38,22 @@ export async function logout(req, res) {
 
 export async function me(req, res) {
   return res.json({ user: req.user });
+}
+
+export async function session(req, res) {
+  const { data, error } = await supabase.auth.getUser(req.user.accessToken);
+
+  if (error || !data?.user) {
+    return res.status(401).json({ message: 'Sessão inválida' });
+  }
+
+  return res.json({
+    user: {
+      id: data.user.id,
+      email: data.user.email,
+      role: data.user.user_metadata?.role || 'staff',
+      lastSignIn: data.user.last_sign_in_at,
+    },
+    expiresAt: data.user.session?.expires_at ?? null,
+  });
 }

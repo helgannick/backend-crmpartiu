@@ -1,4 +1,4 @@
-import { supabase } from "../supabase/supabaseClient.js";
+import { supabase } from "../supabase/supabaseClient.js"; // anon key — leitura pública
 
 export const getMusicGenres = async (req, res) => {
   try {

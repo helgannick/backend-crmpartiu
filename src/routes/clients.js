@@ -1,4 +1,4 @@
-import { supabase } from "../supabase/supabaseClient.js";
+import { supabaseAdmin } from "../supabase/supabaseClient.js";
 import express from "express";
 
 import {
@@ -45,7 +45,7 @@ router.post("/bulk", async (req, res) => {
     Object.fromEntries(Object.entries(c).filter(([k]) => allowed.includes(k)))
   );
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("clients")
     .upsert(rows, { onConflict: "email", ignoreDuplicates: true })
     .select("id");
@@ -76,7 +76,7 @@ router.get("/:id", async (req, res) => {
 
 router.get("/:id/status", async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("clients")
       .select("status")
       .eq("id", req.params.id)

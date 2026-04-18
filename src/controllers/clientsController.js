@@ -1,4 +1,8 @@
-import { supabase } from "../supabase/supabaseClient.js";
+import { supabaseAdmin } from "../supabase/supabaseClient.js";
+
+// clientsController usa supabaseAdmin: operações tocam lookup tables (events, music_genres)
+// que exigem bypass de RLS para criar registros dinamicamente via importação/registro público
+const supabase = supabaseAdmin;
 
 const isUUID = (val) => /^[0-9a-fA-F-]{36}$/.test(val);
 

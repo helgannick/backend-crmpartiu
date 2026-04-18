@@ -15,6 +15,7 @@ Crie um `.env` na raiz:
 ```env
 SUPABASE_URL=https://<project>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+SUPABASE_ANON_KEY=<anon_key>          # Project Settings > API > anon public
 FRONTEND_URL=http://localhost:3000   # produção: URL do frontend
 NODE_ENV=development                 # produção: production
 PORT=3001
@@ -43,6 +44,8 @@ npm run dev
 |--------|------|------|-----------|
 | POST | `/auth/login` | Não | Login — seta cookie httpOnly |
 | POST | `/auth/logout` | Não | Logout — limpa cookie |
+| GET | `/auth/me` | Sim | Retorna usuário autenticado |
+| GET | `/auth/session` | Sim | Retorna sessão completa do Supabase |
 
 ### Clientes
 
@@ -129,6 +132,36 @@ await fetch('https://backend-crmpartiu.onrender.com/auth/logout', {
 
 ---
 
+## Row Level Security (RLS)
+
+### Como aplicar as migrations
+
+Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New query`) na ordem:
+
+1. `migrations/001_enable_rls.sql` — habilita RLS em todas as tabelas
+2. `migrations/002_rls_policies.sql` — cria as políticas por role
+
+### Tabelas e políticas
+
+| Tabela | anon | authenticated | service_role |
+|--------|------|---------------|--------------|
+| `clients` | ❌ | SELECT INSERT UPDATE DELETE | ✅ bypass |
+| `interactions` | ❌ | SELECT INSERT UPDATE DELETE | ✅ bypass |
+| `events` | SELECT | SELECT | ✅ bypass (INSERT/UPDATE/DELETE) |
+| `music_genres` | SELECT | SELECT | ✅ bypass (INSERT/UPDATE/DELETE) |
+| `client_music_genres` | ❌ | SELECT INSERT DELETE | ✅ bypass |
+| `client_events` | ❌ | SELECT INSERT DELETE | ✅ bypass |
+
+### Clientes Supabase no backend
+
+| Export | Chave | Uso |
+|--------|-------|-----|
+| `supabaseAdmin` | `SERVICE_ROLE_KEY` | Controllers, lookup tables, operações que exigem bypass |
+| `supabase` | `ANON_KEY` | Leituras públicas (music_genres) |
+| `getSupabaseForUser(token)` | `ANON_KEY` + JWT | Operações futuras com RLS por usuário |
+
+---
+
 ## Histórico de mudanças
 
 ### 2026-04-18 — Migração para httpOnly cookies
@@ -147,3 +180,27 @@ await fetch('https://backend-crmpartiu.onrender.com/auth/logout', {
 - `src/auth/authMiddleware.js` — leitura do cookie
 - `src/controllers/authController.js` — novo
 - `src/routes/auth.js` — novo
+
+### 2026-04-18 — Row Level Security (RLS)
+
+**Problema:** `SUPABASE_SERVICE_ROLE_KEY` bypassa RLS; acesso direto ao banco não tem proteção.
+
+**Solução:**
+- Criados `migrations/001_enable_rls.sql` e `migrations/002_rls_policies.sql`
+- `supabaseClient.js` exporta `supabaseAdmin` (service_role), `supabase` (anon) e `getSupabaseForUser(token)`
+- Controllers migraram para `supabaseAdmin` (operações que tocam lookup tables)
+- `musicGenresController` usa `supabase` (anon) — leitura pública
+- `authMiddleware` expõe `req.user.accessToken` para uso futuro com `getSupabaseForUser`
+- Adicionados `GET /auth/me` e `GET /auth/session`
+
+**Arquivos alterados:**
+- `migrations/001_enable_rls.sql` — novo
+- `migrations/002_rls_policies.sql` — novo
+- `src/supabase/supabaseClient.js` — dois clientes + helper
+- `src/auth/authMiddleware.js` — expõe accessToken no req.user
+- `src/controllers/authController.js` — session endpoint
+- `src/routes/auth.js` — rota /session
+- `src/controllers/clientsController.js` — importa supabaseAdmin
+- `src/controllers/interactionsController.js` — importa supabaseAdmin
+- `src/controllers/dashboardController.js` — importa supabaseAdmin
+- `src/routes/clients.js` — usa supabaseAdmin inline

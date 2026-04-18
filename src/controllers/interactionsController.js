@@ -1,4 +1,5 @@
-import { supabase } from '../supabase/supabaseClient.js';
+import { supabaseAdmin } from '../supabase/supabaseClient.js';
+const supabase = supabaseAdmin;
 import { calculateStatus } from '../services/statusService.js';
 
 export async function createInteraction(clientId, payload) {
