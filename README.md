@@ -434,3 +434,28 @@ npm run test:coverage   # cobertura de código
 - `tests/middleware/authMiddleware.test.js` — novo
 - `tests/routes/auth.test.js` — novo
 - `tests/routes/clients.test.js` — novo
+
+---
+
+### 2026-04-18 — Documentação Swagger / OpenAPI
+
+**Solução:** UI interativa disponível em `/api-docs` com 22 endpoints documentados.
+
+**Acesso:**
+- Desenvolvimento: http://localhost:3001/api-docs
+- Produção: https://backend-crmpartiu.onrender.com/api-docs
+
+**Cobertura:**
+
+| Tag | Endpoints |
+|-----|-----------|
+| Auth | POST /login, POST /logout, POST /refresh, GET /me, GET /session |
+| Clients | GET/POST /, GET/PUT/PATCH/DELETE /:id, POST /bulk, GET /deleted, POST /:id/restore, GET /:id/status |
+| Interactions | GET/POST /:id/interactions, DELETE /:id/interactions/:iid |
+| Dashboard | total, week, month, birthdays, recent, status, by-month, by-city, conversion-funnel, engagement-trends, top-sources, inactive-clients, retention-cohorts |
+| Public | POST /public/register |
+
+**Arquivos criados/alterados:**
+- `src/docs/swagger.js` — spec OpenAPI 3.0 com schemas e servers
+- `src/app.js` — rota `/api-docs` com swagger-ui-express
+- `src/routes/*.js` — JSDoc `@swagger` em todos os endpoints
