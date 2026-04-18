@@ -28,6 +28,50 @@ npm install
 npm run dev
 ```
 
+## Migrations do banco
+
+### Estrutura
+
+```
+supabase/migrations/
+├── 001_create_tables.sql       — Todas as tabelas base
+├── 002_create_relationships.sql — FKs explícitas (idempotente)
+├── 003_create_indexes.sql      — Índices para queries frequentes
+└── 004_insert_seed_data.sql    — Gêneros musicais padrão
+migrations/
+├── 001_enable_rls.sql          — Habilita RLS nas tabelas
+└── 002_rls_policies.sql        — Políticas por role
+```
+
+### Como aplicar em novo ambiente
+
+**Via Supabase SQL Editor** (recomendado):
+Execute os arquivos em ordem numérica dentro de cada pasta.
+
+**Via script** (requer `psql` e `DATABASE_URL`):
+```bash
+DATABASE_URL=postgresql://... ./supabase/apply-migrations.sh
+```
+
+`DATABASE_URL` disponível em: Supabase > Project Settings > Database > Connection string > URI.
+
+### Como criar uma nova migration
+
+1. Crie o arquivo com o próximo número: `supabase/migrations/005_nome_descritivo.sql`
+2. Use `IF NOT EXISTS` e `DO $$ ... $$` para garantir idempotência
+3. Adicione comentário de data e propósito no topo
+4. Aplique no Supabase antes do deploy
+
+### Reset do banco (dev only)
+
+```sql
+DROP TABLE IF EXISTS client_events, client_music_genres, interactions, clients, events, music_genres CASCADE;
+```
+
+Execute no SQL Editor e reaplique as migrations do zero.
+
+---
+
 ## Regras de desenvolvimento
 
 - **Testar o build local antes de qualquer commit ou push**
@@ -210,6 +254,26 @@ Execute os arquivos SQL no **Supabase SQL Editor** (`Project > SQL Editor > New 
 - `musicGenresController` usa `supabase` (anon) — leitura pública
 - `authMiddleware` expõe `req.user.accessToken` para uso futuro com `getSupabaseForUser`
 - Adicionados `GET /auth/me` e `GET /auth/session`
+
+### 2026-04-18 — Migrations versionadas
+
+**Problema:** Sem migrations = impossível replicar o banco em novo ambiente.
+
+**Solução:**
+- `supabase/migrations/001_create_tables.sql` — schema completo com constraints e CHECKs
+- `supabase/migrations/002_create_relationships.sql` — FKs explícitas e nomeadas (idempotente)
+- `supabase/migrations/003_create_indexes.sql` — 9 índices para queries do dashboard e buscas
+- `supabase/migrations/004_insert_seed_data.sql` — 20 gêneros musicais padrão
+- `supabase/apply-migrations.sh` — script para aplicar via psql
+
+**Arquivos criados:**
+- `supabase/migrations/001_create_tables.sql`
+- `supabase/migrations/002_create_relationships.sql`
+- `supabase/migrations/003_create_indexes.sql`
+- `supabase/migrations/004_insert_seed_data.sql`
+- `supabase/apply-migrations.sh`
+
+---
 
 ### 2026-04-18 — Rate Limiting
 
