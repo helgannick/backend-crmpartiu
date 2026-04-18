@@ -1,17 +1,21 @@
 import { supabaseAdmin as supabase } from '../supabase/supabaseClient.js';
 
+const isProd = process.env.NODE_ENV === 'production';
+
+// Em produção frontend e backend estão em domínios diferentes (Vercel × Render),
+// então sameSite precisa ser 'none' + secure para cookies cross-site funcionarem.
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'strict',
   maxAge: 7 * 24 * 60 * 60 * 1000,
 };
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 dias
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'strict',
+  maxAge: 30 * 24 * 60 * 60 * 1000,
   path: '/auth/refresh',
 };
 
