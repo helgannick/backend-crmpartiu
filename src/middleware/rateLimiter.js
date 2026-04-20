@@ -19,6 +19,7 @@ export const publicRegister = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  skipFailedRequests: true,
   message: message(60),
 });
 

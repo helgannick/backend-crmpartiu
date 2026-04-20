@@ -68,8 +68,11 @@ export async function createClient(payload, user = null) {
           .select()
           .single();
 
-        if (eventCreateError) throw eventCreateError;
-        resolvedFavoriteEventId = newEvent.id;
+        if (eventCreateError) {
+          console.error("createClient: could not create favorite_event (skipping FK):", eventCreateError.message);
+        } else {
+          resolvedFavoriteEventId = newEvent.id;
+        }
       }
     }
   }
@@ -126,21 +129,25 @@ export async function createClient(payload, user = null) {
           .select()
           .single();
 
-        if (genreError) throw genreError;
+        if (genreError) {
+          console.error("createClient: could not create music_genre (skipping):", genreError.message);
+          return null;
+        }
         return newGenre.id;
       })
     );
 
-    const rows = resolvedGenreIds.map((genreId) => ({
-      client_id: clientId,
-      genre_id: genreId,
-    }));
+    const rows = resolvedGenreIds
+      .filter(Boolean)
+      .map((genreId) => ({ client_id: clientId, genre_id: genreId }));
 
-    const { error: genreInsertError } = await supabase
-      .from("client_music_genres")
-      .insert(rows);
+    if (rows.length) {
+      const { error: genreInsertError } = await supabase
+        .from("client_music_genres")
+        .insert(rows);
 
-    if (genreInsertError) throw genreInsertError;
+      if (genreInsertError) console.error("createClient: could not link music_genres:", genreInsertError.message);
+    }
   }
 
   /* =====================
@@ -167,22 +174,22 @@ export async function createClient(payload, user = null) {
           .select()
           .single();
 
-        if (eventCreateError) throw eventCreateError;
-        eventId = newEvent.id;
+        if (eventCreateError) {
+          console.error("createClient: could not create last_event (skipping):", eventCreateError.message);
+          eventId = null;
+        } else {
+          eventId = newEvent.id;
+        }
       }
     }
 
-    const { error: eventError } = await supabase
-      .from("client_events")
-      .insert([
-        {
-          client_id: clientId,
-          event_id: eventId,
-          attended_at: new Date(),
-        },
-      ]);
+    if (eventId) {
+      const { error: eventError } = await supabase
+        .from("client_events")
+        .insert([{ client_id: clientId, event_id: eventId, attended_at: new Date() }]);
 
-    if (eventError) throw eventError;
+      if (eventError) console.error("createClient: could not link last_event:", eventError.message);
+    }
   }
 
   logAction({ tableName: 'clients', recordId: client.id, action: 'INSERT', newValues: client, user });
