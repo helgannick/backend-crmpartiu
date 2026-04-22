@@ -19,6 +19,9 @@ import birthdayRoutes from './routes/birthday.js';
 
 const app = express();
 
+// Necessário para Render/proxies reversos — libera X-Forwarded-For para rate limiter
+app.set('trust proxy', 1);
+
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 app.use(cors({
