@@ -13,6 +13,9 @@ import { authMiddleware } from './auth/authMiddleware.js';
 import dashboardRoutes from './routes/dashboard.js';
 import musicGenresRoutes from './routes/musicGenres.js';
 import auditRoutes from './routes/audit.js';
+import webhooksRoutes from './routes/webhooks.js';
+import whatsappRoutes from './routes/whatsapp.js';
+import birthdayRoutes from './routes/birthday.js';
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use(general);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, { customSiteTitle: 'CRM Partiu API' }));
 
+// Keep-alive para UptimeRobot (sem auth)
+app.get('/health', (req, res) => res.json({ status: 'ok', ts: Date.now() }));
+
 app.use('/public', publicRoutes);
 app.use('/auth', authRoutes);
 app.use('/music-genres', musicGenresRoutes);
@@ -36,5 +42,10 @@ app.use('/clients', authMiddleware, clientsRoutes);
 app.use('/clients', authMiddleware, interactionsRoutes);
 app.use('/dashboard', authMiddleware, dashboardRoutes);
 app.use('/audit', authMiddleware, auditRoutes);
+
+// Evolution API integration
+app.use('/api/webhooks', webhooksRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api/birthday', birthdayRoutes);
 
 export default app;
