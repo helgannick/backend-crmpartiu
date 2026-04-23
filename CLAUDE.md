@@ -136,9 +136,17 @@ birthdayService.sendPendingBody(phone)
 - Guard atômico no webhook (evita body duplicado em respostas rápidas)
 - Filtra mensagens de grupos (`@g.us`)
 
+## Conversão de aniversário
+
+`POST /api/birthday/:clientId/convert` chama `birthdayService.markConverted(clientId)` que:
+1. Atualiza `clients`: `bought_with_partiu = true` + `birthday_converted_year = ano atual`
+2. Insere log em `message_logs` com `campaign: 'birthday_converted'`
+
+Campo `birthday_converted_year` (int4, nullable) criado manualmente no Supabase.
+Usado no frontend para distinguir conversão deste ano vs. cliente histórico.
+
 ## Próximos passos pendentes
-1. **Botão de conversão no frontend** — ficha do cliente, `POST /api/birthday/:clientId/convert`
-2. **Tela de aniversariantes** — painel com D-7/D-0, status de envios, conversões
-3. **Histórico de mensagens** — na ficha do cliente, consumindo `message_logs`
-4. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
-5. **Relatório mensal** — métricas de envio, resposta e conversão
+1. **Tela de aniversariantes** — painel com D-7/D-0, status de envios, conversões
+2. **Histórico de mensagens** — na ficha do cliente, consumindo `message_logs`
+3. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
+4. **Relatório mensal** — métricas de envio, resposta e conversão
