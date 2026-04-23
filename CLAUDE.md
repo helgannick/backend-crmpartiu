@@ -145,8 +145,20 @@ birthdayService.sendPendingBody(phone)
 Campo `birthday_converted_year` (int4, nullable) criado manualmente no Supabase.
 Usado no frontend para distinguir conversão deste ano vs. cliente histórico.
 
+## Endpoint GET /api/birthday/panel
+
+Retorna D-7/D-0 enriquecido com status de mensagem por cliente + stats do ano:
+```json
+{
+  "d7": { "count": 3, "clients": [...] },
+  "d0": { "count": 1, "clients": [...] },
+  "stats": { "sentThisYear": 12, "convertedThisYear": 3, "year": 2026 }
+}
+```
+Cada cliente tem `messageStatus: { status, campaign } | null`.
+Status possíveis: `pending_reply`, `sent`, `failed`, `expired`, `birthday_converted`.
+
 ## Próximos passos pendentes
-1. **Tela de aniversariantes** — painel com D-7/D-0, status de envios, conversões
-2. **Histórico de mensagens** — na ficha do cliente, consumindo `message_logs`
-3. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
-4. **Relatório mensal** — métricas de envio, resposta e conversão
+1. **Histórico de mensagens** — na ficha do cliente, consumindo `message_logs`
+2. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
+3. **Relatório mensal** — métricas de envio, resposta e conversão
