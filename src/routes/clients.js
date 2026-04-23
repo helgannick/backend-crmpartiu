@@ -347,4 +347,22 @@ router.post("/:id/restore", async (req, res) => {
   }
 });
 
+// GET /clients/:id/messages — histórico de mensagens WhatsApp do cliente
+router.get("/:id/messages", async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("message_logs")
+      .select("id, status, message_body, sent_at, metadata")
+      .eq("client_id", req.params.id)
+      .order("sent_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw new Error(error.message);
+    res.json(data ?? []);
+  } catch (err) {
+    console.error("GET /clients/:id/messages error", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router;
