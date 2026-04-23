@@ -11,46 +11,50 @@ REGRA ABSOLUTA: nunca mencione descontos, percentuais, valores ou ofertas concre
 Seu único objetivo é despertar curiosidade e fazer o cliente responder — quem vai negociar é o time humano.
 `.trim();
 
+const PRE_BIRTHDAY_VARIATIONS = [
+  {
+    opener: (name) => `E aí, ${name}, tudo bem?`,
+    body: `🎉 Seu aniversário tá chegando e nós da Partiu queremos te propor uma comemoração especial.\n\n✨ Posso te enviar as opções de festas e assim que você escolher, eu te passo as vantagens que consigo em cada uma delas...`,
+  },
+  {
+    opener: (name) => `Oi ${name}! Como você tá?`,
+    body: `🎉 Seu aniversário tá chegando aí e a gente da Partiu quer muito fazer parte dessa data!\n\n✨ Tenho algumas opções de comemoração que acho que você vai adorar. Me responde aqui que eu te mando tudo!`,
+  },
+  {
+    opener: (name) => `Fala, ${name}! Tudo certo?`,
+    body: `🎉 Sei que o seu aniversário tá pertinho e a gente da Partiu tem uma ideia especial pra te apresentar!\n\n✨ Posso te mostrar as opções que temos pra comemorar essa data? É só me falar que te passo todas as vantagens!`,
+  },
+  {
+    opener: (name) => `Oi ${name}! Tudo bem por aí?`,
+    body: `🎉 Olha que data especial vem aí! Seu aniversário tá chegando e a Partiu quer fazer parte dessa celebração!\n\n✨ Tenho opções incríveis de festa pra te mostrar. Me responde aqui que a gente bate um papo!`,
+  },
+  {
+    opener: (name) => `E aí, ${name}! Como tá a vida?`,
+    body: `🎉 Seu aniversário tá chegando e a Partiu tem uma proposta especial preparada pra você!\n\n✨ Assim que você responder, te mando as opções de comemoração e as vantagens que consigo em cada uma!`,
+  },
+  {
+    opener: (name) => `Oi ${name}, tudo bem?`,
+    body: `🎉 Seu aniversário vem chegando e nós da Partiu adoraríamos fazer parte dessa comemoração!\n\n✨ Posso te mostrar o que temos disponível? Me fala aqui e te passo as opções e o que consigo de especial pra você!`,
+  },
+  {
+    opener: (name) => `Fala, ${name}, tudo certo por aí?`,
+    body: `🎉 Seu dia especial tá se aproximando e a Partiu quer te propor algo incrível pra comemorar essa data!\n\n✨ É só me responder que eu te envio as opções de festa e as vantagens que tenho pra você!`,
+  },
+  {
+    opener: (name) => `E aí, ${name}! Beleza?`,
+    body: `🎉 Sabia que seu aniversário tá chegando? A Partiu tem uma proposta especial que acho que você vai curtir muito!\n\n✨ Me responde aqui que eu te mando as opções de comemoração com tudo que consigo de vantagem pra você!`,
+  },
+];
+
 export const aiMessageService = {
 
-  // Retorna { opener, body } — enviados separadamente: opener primeiro, body após resposta
+  // D-7: variações fixas, sem IA — garante padrão aprovado e sem risco de erro
   async generatePreBirthdayMessage(client) {
-    const { name, city, bought_with_partiu } = client;
-    const loyalty = bought_with_partiu ? 'já é cliente' : 'ainda não veio pessoalmente';
-
-    const openerPrompt = `
-Gere APENAS uma linha de saudação de WhatsApp para ${name}.
-Varie entre estilos como: "E aí, ${name}, tudo bem?", "Oi ${name}! Como você tá?", "Fala, ${name}! Tudo certo?", etc.
-Regras: só essa linha, sem emoji, informal, termine com "?".
-`.trim();
-
-    const bodyPrompt = `
-Crie o corpo de uma mensagem de WhatsApp de pré-aniversário para ${name} (mora em ${city || 'Rio de Janeiro'}, ${loyalty} da Partiu Pra Boa).
-O aniversário é daqui 7 dias. Esta parte vem APÓS uma saudação já enviada — não repita o nome nem cumprimente de novo.
-
-Estrutura OBRIGATÓRIA (use exatamente esse espaçamento):
-
-🎉 [ANIMAÇÃO: uma frase empolgada sobre o aniversário chegando — varie as palavras a cada geração]
-
-✨ [GANCHO: diga que a Partiu tem algo especial preparado para o aniversário dele, desperte curiosidade, convide a responder para saber mais. NÃO cite desconto, valor ou oferta concreta — apenas gere expectativa]
-
-Exemplo de referência do tom e formato (NÃO copie, apenas inspire-se):
-"
-🎉 Seu aniversário tá chegando e a gente já tem uma surpresa preparada pra você!
-
-✨ Deixa eu te contar o que separamos — é só me responder aqui que eu te passo tudo!"
-
-Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as palavras.
-`.trim();
-
-    const [opener, body] = await Promise.all([
-      callOpenAI(openerPrompt, 0.9),
-      callOpenAI(bodyPrompt, 0.85)
-    ]);
-
+    const { name } = client;
+    const variation = PRE_BIRTHDAY_VARIATIONS[Math.floor(Math.random() * PRE_BIRTHDAY_VARIATIONS.length)];
     return {
-      opener: opener.trim().replace(/\[nome\]/gi, name),
-      body: body.trim().replace(/\[nome\]/gi, name),
+      opener: variation.opener(name),
+      body: variation.body,
     };
   },
 
