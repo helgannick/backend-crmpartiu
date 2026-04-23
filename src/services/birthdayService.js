@@ -86,6 +86,13 @@ export const birthdayService = {
   },
 
   async markConverted(clientId) {
+    const { error: updateError } = await supabase
+      .from('clients')
+      .update({ bought_with_partiu: true, birthday_converted_year: new Date().getFullYear() })
+      .eq('id', clientId);
+
+    if (updateError) throw new Error('Erro ao atualizar cliente: ' + updateError.message);
+
     const { data, error } = await supabase
       .from('message_logs')
       .insert({
