@@ -6,6 +6,9 @@ const BRAND_CONTEXT = `
 Você é um atendente da Partiu Pra Boa, empresa de eventos e entretenimento no Rio de Janeiro.
 Escreva em português brasileiro informal, como um amigo próximo — natural, caloroso, sem formalidade.
 Use emojis com moderação. Varie sempre as palavras para não soar repetitivo.
+
+REGRA ABSOLUTA: nunca mencione descontos, percentuais, valores ou ofertas concretas.
+Seu único objetivo é despertar curiosidade e fazer o cliente responder — quem vai negociar é o time humano.
 `.trim();
 
 export const aiMessageService = {
@@ -17,7 +20,7 @@ export const aiMessageService = {
 
     const openerPrompt = `
 Gere APENAS uma linha de saudação de WhatsApp para ${name}.
-Varie entre estilos como: "E aí, [nome], tudo bem?", "Oi [nome]! Como você tá?", "Fala, [nome]! Tudo certo?", etc.
+Varie entre estilos como: "E aí, ${name}, tudo bem?", "Oi ${name}! Como você tá?", "Fala, ${name}! Tudo certo?", etc.
 Regras: só essa linha, sem emoji, informal, termine com "?".
 `.trim();
 
@@ -29,13 +32,13 @@ Estrutura OBRIGATÓRIA (use exatamente esse espaçamento):
 
 🎉 [ANIMAÇÃO: uma frase empolgada sobre o aniversário chegando — varie as palavras a cada geração]
 
-✨ [OPORTUNIDADE + VANTAGENS: oferta exclusiva de pré-aniversário, mencione opções de comemoração e vantagens para aniversariantes da Partiu Pra Boa, sem citar valores. Termine convidando a responder para receber as opções]
+✨ [GANCHO: diga que a Partiu tem algo especial preparado para o aniversário dele, desperte curiosidade, convide a responder para saber mais. NÃO cite desconto, valor ou oferta concreta — apenas gere expectativa]
 
 Exemplo de referência do tom e formato (NÃO copie, apenas inspire-se):
 "
-🎉 Seu aniversário tá chegando e nós da Partiu queremos te propor uma comemoração especial.
+🎉 Seu aniversário tá chegando e a gente já tem uma surpresa preparada pra você!
 
-✨ Posso te enviar as opções de festas e assim que você escolher, eu te passo as vantagens que consigo em cada uma delas..."
+✨ Deixa eu te contar o que separamos — é só me responder aqui que eu te passo tudo!"
 
 Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as palavras.
 `.trim();
@@ -45,7 +48,10 @@ Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as pala
       callOpenAI(bodyPrompt, 0.85)
     ]);
 
-    return { opener: opener.trim(), body: body.trim() };
+    return {
+      opener: opener.trim().replace(/\[nome\]/gi, name),
+      body: body.trim().replace(/\[nome\]/gi, name),
+    };
   },
 
   async generateBirthdayMessage(client) {
@@ -54,19 +60,20 @@ Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as pala
 
     const openerPrompt = `
 Gere APENAS uma linha de saudação de aniversário para ${name}.
-Varie entre estilos como: "E aí, [nome]! Hoje é seu dia! 🎉", "Oi [nome], feliz aniversário! 🎂", "Fala, [nome]! Parabéns! 🥳", etc.
-Regras: só essa linha, 1 emoji, informal.
+Deve ser calorosa e animada — vá além do básico "feliz aniversário".
+Varie entre estilos como: "Marc! Hoje é o seu dia e a gente não podia deixar passar sem dar um oi! 🎉", "Oi ${name}, esse dia chegou! Parabéns 🥳", "${name}! Muitos anos de vida e muita festa pela frente! 🎊", etc.
+Regras: só essa linha, 1 emoji, informal, calorosa.
 `.trim();
 
     const bodyPrompt = `
-Crie o corpo de uma mensagem de WhatsApp de aniversário com upsell para ${name} (mora em ${city || 'Rio de Janeiro'}, ${loyalty} da Partiu Pra Boa).
+Crie o corpo de uma mensagem de WhatsApp de aniversário para ${name} (mora em ${city || 'Rio de Janeiro'}, ${loyalty} da Partiu Pra Boa).
 HOJE é o aniversário. Esta parte vem APÓS uma saudação já enviada — não repita o nome nem cumprimente de novo.
 
 Estrutura OBRIGATÓRIA (use exatamente esse espaçamento):
 
-🎉 [ANIMAÇÃO: frase calorosa celebrando o dia — varie as palavras]
+🎉 [CELEBRAÇÃO: frase calorosa e genuína celebrando o dia — varie as palavras, seja humano]
 
-✨ [OPORTUNIDADE: oferta exclusiva só hoje, vantagens únicas para aniversariantes da Partiu Pra Boa, urgência real mas sem pressão. Termine convidando a responder para resgatar]
+✨ [GANCHO: diga que a Partiu tem algo especial reservado para o aniversário dele hoje, gere curiosidade e convide a responder. NÃO cite desconto, valor ou oferta concreta — apenas desperte vontade de saber mais]
 
 Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as palavras.
 `.trim();
@@ -76,24 +83,27 @@ Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as pala
       callOpenAI(bodyPrompt, 0.85)
     ]);
 
-    return { opener: opener.trim(), body: body.trim() };
+    return {
+      opener: opener.trim().replace(/\[nome\]/gi, name),
+      body: body.trim().replace(/\[nome\]/gi, name),
+    };
   },
 
   async generateSimpleBirthdayMessage(client) {
     const { name } = client;
 
     const openerPrompt = `
-Gere APENAS uma linha de saudação de aniversário para ${name} (já é cliente fechado — só celebrar).
-Informal, caloroso, 1 emoji. Varie as palavras.
+Gere APENAS uma linha de saudação de aniversário para ${name} (já é cliente — só celebrar, sem ofertas).
+Calorosa, animada, vai além do básico. Varie as palavras. 1 emoji.
 `.trim();
 
     const bodyPrompt = `
-Crie o corpo de uma mensagem curta de feliz aniversário para ${name}, que já fechou com a Partiu Pra Boa.
+Crie o corpo de uma mensagem curta de feliz aniversário para ${name}, que já é cliente da Partiu Pra Boa.
 Esta parte vem APÓS uma saudação — não repita o nome.
 
 Estrutura:
 
-🎉 [desejo de aniversário genuíno e caloroso, sem ofertas, sem CTA — apenas celebrar]
+🎉 [desejo de aniversário genuíno e caloroso — sem ofertas, sem CTA, sem desconto, apenas celebrar com carinho]
 
 Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
 `.trim();
@@ -103,7 +113,10 @@ Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
       callOpenAI(bodyPrompt, 0.85)
     ]);
 
-    return { opener: opener.trim(), body: body.trim() };
+    return {
+      opener: opener.trim().replace(/\[nome\]/gi, name),
+      body: body.trim().replace(/\[nome\]/gi, name),
+    };
   }
 };
 

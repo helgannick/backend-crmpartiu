@@ -163,6 +163,14 @@ Status possíveis: `pending_reply`, `sent`, `failed`, `expired`, `birthday_conve
 Retorna até 50 registros de `message_logs` do cliente, ordenados por `sent_at DESC`.
 Campos: `id, status, message_body, sent_at, metadata`.
 
+## Regras da IA de mensagens (`aiMessageService.js`)
+
+- A IA faz **apenas o primeiro contato** — desperta curiosidade e convida a responder
+- **Nunca** mencionar desconto, percentual, valor ou oferta concreta
+- Após o cliente responder, um humano assume a conversa e negocia
+- Openers devem ser calorosos e variados, indo além do básico "feliz aniversário"
+- Fallback de segurança: `.replace(/\[nome\]/gi, name)` em todos os retornos
+
 ## Próximos passos pendentes
 1. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
 2. **Relatório mensal** — métricas de envio, resposta e conversão
