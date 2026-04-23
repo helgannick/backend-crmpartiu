@@ -9,6 +9,15 @@ function runInBackground(jobFn, label) {
   jobFn().catch(err => console.error(`❌ Erro background ${label}:`, err.message));
 }
 
+// Middleware de chave secreta para cron externo (sem cookie de sessão)
+function cronKeyMiddleware(req, res, next) {
+  const key = req.query.key || req.headers['x-cron-key'];
+  if (!process.env.CRON_SECRET || key !== process.env.CRON_SECRET) {
+    return res.status(401).json({ error: 'Chave inválida' });
+  }
+  next();
+}
+
 // POST /api/birthday/run/d7
 router.post('/run/d7', authMiddleware, async (req, res) => {
   res.json({ success: true, message: 'Job D-7 iniciado em background' });
@@ -29,6 +38,16 @@ router.post('/run', authMiddleware, async (req, res) => {
     await birthdayService.runPreBirthdayJob();
     await birthdayService.runBirthdayJob();
   }, 'cleanup+D-7+D-0');
+});
+
+// POST /api/birthday/cron — rota exclusiva para cron-job.org (chave fixa, sem expiração)
+router.post('/cron', cronKeyMiddleware, (req, res) => {
+  res.json({ success: true, message: 'Jobs iniciados em background' });
+  runInBackground(async () => {
+    await birthdayService.expireStaleReplies(10);
+    await birthdayService.runPreBirthdayJob();
+    await birthdayService.runBirthdayJob();
+  }, 'cron');
 });
 
 // GET /api/birthday/preview — lista aniversariantes sem enviar
