@@ -110,6 +110,56 @@ export const birthdayService = {
     return data;
   },
 
+  async getPanelData() {
+    const year = new Date().getFullYear();
+    const yearStart = `${year}-01-01`;
+
+    const [d7Clients, d0Clients, logsResult] = await Promise.all([
+      this.getClientsByBirthdayOffset(7),
+      this.getClientsByBirthdayOffset(0),
+      supabase
+        .from('message_logs')
+        .select('client_id, status, metadata, sent_at')
+        .gte('sent_at', yearStart)
+    ]);
+
+    const logs = (logsResult.data || []).filter(l => l.metadata?.campaign?.startsWith('birthday_'));
+
+    // Prioridade de status por cliente: converted > sent > pending_reply > failed > expired
+    const priority = { birthday_converted: 5, sent: 4, pending_reply: 3, sending: 2, failed: 1, expired: 0 };
+    const statusByClient = {};
+    for (const log of logs) {
+      const score = log.metadata?.campaign === 'birthday_converted' ? 5 : (priority[log.status] ?? 0);
+      const existing = statusByClient[log.client_id];
+      const existingScore = existing
+        ? (existing.campaign === 'birthday_converted' ? 5 : (priority[existing.status] ?? 0))
+        : -1;
+      if (score > existingScore) {
+        statusByClient[log.client_id] = { status: log.status, campaign: log.metadata?.campaign };
+      }
+    }
+
+    const enrich = (clients) => clients.map(c => ({
+      id: c.id,
+      name: c.name,
+      phone: c.phone,
+      birth_date: c.birth_date,
+      bought_with_partiu: c.bought_with_partiu,
+      birthday_converted_year: c.birthday_converted_year,
+      messageStatus: statusByClient[c.id] || null,
+    }));
+
+    // Totais do ano para stats
+    const convertedThisYear = logs.filter(l => l.metadata?.campaign === 'birthday_converted').length;
+    const sentThisYear = new Set(logs.filter(l => l.status === 'sent' || l.status === 'pending_reply').map(l => l.client_id)).size;
+
+    return {
+      d7: { count: d7Clients.length, clients: enrich(d7Clients) },
+      d0: { count: d0Clients.length, clients: enrich(d0Clients) },
+      stats: { sentThisYear, convertedThisYear, year },
+    };
+  },
+
   // Envia opener, salva o body como pending_reply para disparar após resposta
   async sendOpenerAndSavePending(client, { opener, body }, campaignType) {
     const result = await evolutionService.sendText(client.phone, opener);

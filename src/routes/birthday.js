@@ -50,6 +50,16 @@ router.post('/cron', cronKeyMiddleware, (req, res) => {
   }, 'cron');
 });
 
+// GET /api/birthday/panel — painel completo com status de envio por cliente
+router.get('/panel', authMiddleware, async (req, res) => {
+  try {
+    const data = await birthdayService.getPanelData();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET /api/birthday/preview — lista aniversariantes sem enviar
 router.get('/preview', authMiddleware, async (req, res) => {
   try {
