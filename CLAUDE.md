@@ -158,7 +158,11 @@ Retorna D-7/D-0 enriquecido com status de mensagem por cliente + stats do ano:
 Cada cliente tem `messageStatus: { status, campaign } | null`.
 Status possíveis: `pending_reply`, `sent`, `failed`, `expired`, `birthday_converted`.
 
+## Endpoint GET /clients/:id/messages
+
+Retorna até 50 registros de `message_logs` do cliente, ordenados por `sent_at DESC`.
+Campos: `id, status, message_body, sent_at, metadata`.
+
 ## Próximos passos pendentes
-1. **Histórico de mensagens** — na ficha do cliente, consumindo `message_logs`
-2. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
-3. **Relatório mensal** — métricas de envio, resposta e conversão
+1. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
+2. **Relatório mensal** — métricas de envio, resposta e conversão
