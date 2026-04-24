@@ -118,6 +118,16 @@ router.post('/cleanup', authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/birthday/test-alert — testa envio de email de alerta sem disparar mensagens
+router.post('/test-alert', authMiddleware, async (req, res) => {
+  try {
+    await sendCronAlert('teste', 'Erro simulado — verificação manual do sistema de alertas');
+    res.json({ success: true, message: 'Email de alerta enviado' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/birthday/cron-status — últimas execuções do cron (sucesso/falha)
 router.get('/cron-status', authMiddleware, async (req, res) => {
   try {
