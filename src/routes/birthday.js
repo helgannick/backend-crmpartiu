@@ -1,12 +1,39 @@
 import express from 'express';
 import { authMiddleware } from '../auth/authMiddleware.js';
 import { birthdayService } from '../services/birthdayService.js';
+import { supabaseAdmin } from '../supabase/supabaseClient.js';
 
 const router = express.Router();
 
 // Dispara job em background e responde imediatamente (evita timeout HTTP)
 function runInBackground(jobFn, label) {
-  jobFn().catch(err => console.error(`❌ Erro background ${label}:`, err.message));
+  const startedAt = new Date().toISOString();
+  jobFn()
+    .then(() => {
+      supabaseAdmin.from('audit_logs').insert({
+        table_name: 'cron',
+        record_id: null,
+        action: `cron_${label}_success`,
+        new_values: { label, ran_at: startedAt, finished_at: new Date().toISOString() },
+        user_id: null,
+        user_email: 'cron@sistema',
+      }).then(({ error }) => {
+        if (error) console.error('[cron] falha ao logar sucesso:', error.message);
+      });
+    })
+    .catch(err => {
+      console.error(`❌ Erro background ${label}:`, err.message);
+      supabaseAdmin.from('audit_logs').insert({
+        table_name: 'cron',
+        record_id: null,
+        action: `cron_${label}_error`,
+        new_values: { label, error: err.message, ran_at: startedAt, finished_at: new Date().toISOString() },
+        user_id: null,
+        user_email: 'cron@sistema',
+      }).then(({ error: auditErr }) => {
+        if (auditErr) console.error('[cron] falha ao logar erro:', auditErr.message);
+      });
+    });
 }
 
 // Middleware de chave secreta para cron externo (sem cookie de sessão)
@@ -84,6 +111,23 @@ router.post('/cleanup', authMiddleware, async (req, res) => {
     res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/birthday/cron-status — últimas execuções do cron (sucesso/falha)
+router.get('/cron-status', authMiddleware, async (req, res) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('audit_logs')
+      .select('action, new_values, created_at')
+      .eq('table_name', 'cron')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw new Error(error.message);
+    res.json(data ?? []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

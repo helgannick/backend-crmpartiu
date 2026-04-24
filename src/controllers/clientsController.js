@@ -239,7 +239,9 @@ export async function getClientById(id) {
 /* ============================= */
 
 export async function listClientsFiltered(query) {
-  const { search, month, page = 1, limit = 20 } = query;
+  const page = Math.max(1, Number(query.page) || 1);
+  const limit = Math.min(Math.max(1, Number(query.limit) || 20), 100);
+  const { search, month } = query;
 
   const offset = (page - 1) * limit;
 

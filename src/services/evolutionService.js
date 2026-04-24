@@ -31,35 +31,41 @@ export const evolutionService = {
   },
 
   async sendText(phone, message) {
-    try {
-      const cleanPhone = phone.replace(/\D/g, '');
-      const phoneWithDDI = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-      const number = `${phoneWithDDI}@s.whatsapp.net`;
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneWithDDI = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const number = `${phoneWithDDI}@s.whatsapp.net`;
 
-      console.log(`📱 Enviando WhatsApp para: ${phoneWithDDI}`);
+    console.log(`📱 Enviando WhatsApp para: ${phoneWithDDI}`);
 
-      const response = await api.post(`/message/sendText/${INSTANCE_NAME}`, {
-        number,
-        text: message,
-        delay: 1200
-      });
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const response = await api.post(`/message/sendText/${INSTANCE_NAME}`, {
+          number,
+          text: message,
+          delay: 1200
+        });
 
-      if (response.data?.key) {
-        return {
-          success: true,
-          messageId: response.data.key.id,
-          timestamp: response.data.messageTimestamp
-        };
+        if (response.data?.key) {
+          return {
+            success: true,
+            messageId: response.data.key.id,
+            timestamp: response.data.messageTimestamp
+          };
+        }
+
+        return { success: false, error: 'Resposta inválida da Evolution API' };
+
+      } catch (error) {
+        console.error(`❌ Tentativa ${attempt}/3 falhou para ${phoneWithDDI}:`, error.response?.data || error.message);
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt - 1)));
+        } else {
+          return {
+            success: false,
+            error: error.response?.data?.message || error.message
+          };
+        }
       }
-
-      return { success: false, error: 'Resposta inválida da Evolution API' };
-
-    } catch (error) {
-      console.error('❌ Erro ao enviar WhatsApp:', error.response?.data || error.message);
-      return {
-        success: false,
-        error: error.response?.data?.message || error.message
-      };
     }
   },
 

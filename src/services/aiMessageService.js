@@ -11,6 +11,36 @@ REGRA ABSOLUTA: nunca mencione descontos, percentuais, valores ou ofertas concre
 Seu único objetivo é despertar curiosidade e fazer o cliente responder — quem vai negociar é o time humano.
 `.trim();
 
+const BIRTHDAY_D0_FALLBACKS = [
+  {
+    opener: (name) => `${name}! Hoje é o seu dia e a Partiu não podia deixar passar! 🎉`,
+    body: `🎉 Que seu aniversário seja incrível!\n\n✨ Temos algo especial reservado pra você hoje. Me responde aqui que eu te conto tudo!`,
+  },
+  {
+    opener: (name) => `Oi ${name}, esse dia chegou! Parabéns! 🥳`,
+    body: `🎉 Desejamos um aniversário repleto de alegria e muita comemoração!\n\n✨ A Partiu tem uma surpresa especial pra você hoje. É só me falar que eu te conto!`,
+  },
+  {
+    opener: (name) => `${name}! Muitos anos de vida e muita festa pela frente! 🎊`,
+    body: `🎉 Hoje é o seu dia e a Partiu quer fazer parte dessa celebração!\n\n✨ Tenho algo especial preparado pra você. Me responde aqui que eu te mando as opções!`,
+  },
+];
+
+const BIRTHDAY_D0_SIMPLE_FALLBACKS = [
+  {
+    opener: (name) => `${name}! Hoje é o seu dia! Parabéns! 🎉`,
+    body: `🎉 Que seu aniversário seja repleto de alegria, saúde e muita festa!\n\nA Partiu deseja tudo de melhor pra você nessa data especial! 🥳`,
+  },
+  {
+    opener: (name) => `Oi ${name}, esse dia chegou! Feliz aniversário! 🥳`,
+    body: `🎉 Desejamos um aniversário incrível, cheio de celebração e momentos especiais!\n\nConte sempre com a Partiu! 🎊`,
+  },
+  {
+    opener: (name) => `${name}! Muitos anos de vida! 🎊`,
+    body: `🎉 Que esse aniversário seja apenas o começo de um ano incrível!\n\nA Partiu está aqui torcendo por você! 🎂`,
+  },
+];
+
 const PRE_BIRTHDAY_VARIATIONS = [
   {
     opener: (name) => `E aí, ${name}, tudo bem?`,
@@ -82,15 +112,20 @@ Estrutura OBRIGATÓRIA (use exatamente esse espaçamento):
 Regras: máximo 2 blocos com linha em branco entre eles, informal, varie as palavras.
 `.trim();
 
-    const [opener, body] = await Promise.all([
-      callOpenAI(openerPrompt, 0.9),
-      callOpenAI(bodyPrompt, 0.85)
-    ]);
-
-    return {
-      opener: opener.trim().replace(/\[nome\]/gi, name),
-      body: body.trim().replace(/\[nome\]/gi, name),
-    };
+    try {
+      const [opener, body] = await Promise.all([
+        callOpenAI(openerPrompt, 0.9),
+        callOpenAI(bodyPrompt, 0.85)
+      ]);
+      return {
+        opener: opener.trim().replace(/\[nome\]/gi, name),
+        body: body.trim().replace(/\[nome\]/gi, name),
+      };
+    } catch (error) {
+      console.error('⚠️ OpenAI falhou para D-0, usando fallback estático:', error.message);
+      const fallback = BIRTHDAY_D0_FALLBACKS[Math.floor(Math.random() * BIRTHDAY_D0_FALLBACKS.length)];
+      return { opener: fallback.opener(name), body: fallback.body };
+    }
   },
 
   async generateSimpleBirthdayMessage(client) {
@@ -112,19 +147,27 @@ Estrutura:
 Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
 `.trim();
 
-    const [opener, body] = await Promise.all([
-      callOpenAI(openerPrompt, 0.9),
-      callOpenAI(bodyPrompt, 0.85)
-    ]);
-
-    return {
-      opener: opener.trim().replace(/\[nome\]/gi, name),
-      body: body.trim().replace(/\[nome\]/gi, name),
-    };
+    try {
+      const [opener, body] = await Promise.all([
+        callOpenAI(openerPrompt, 0.9),
+        callOpenAI(bodyPrompt, 0.85)
+      ]);
+      return {
+        opener: opener.trim().replace(/\[nome\]/gi, name),
+        body: body.trim().replace(/\[nome\]/gi, name),
+      };
+    } catch (error) {
+      console.error('⚠️ OpenAI falhou para D-0 simples, usando fallback estático:', error.message);
+      const fallback = BIRTHDAY_D0_SIMPLE_FALLBACKS[Math.floor(Math.random() * BIRTHDAY_D0_SIMPLE_FALLBACKS.length)];
+      return { opener: fallback.opener(name), body: fallback.body };
+    }
   }
 };
 
 async function callOpenAI(userPrompt, temperature = 0.85) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -134,11 +177,13 @@ async function callOpenAI(userPrompt, temperature = 0.85) {
       ],
       max_tokens: 300,
       temperature
-    });
+    }, { signal: controller.signal });
 
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error('Erro OpenAI:', error.message);
     throw new Error('Falha ao gerar mensagem com IA: ' + error.message);
+  } finally {
+    clearTimeout(timeout);
   }
 }
