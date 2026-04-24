@@ -1,5 +1,14 @@
 # CRM Partiu Pra Boa — Backend
 
+## Regras de desenvolvimento
+
+> **TESTAR ANTES DE COMMITAR — OBRIGATÓRIO**
+> Antes de qualquer `git commit` ou `git push`:
+> 1. Subir o servidor: `node src/server.js`
+> 2. Testar os endpoints modificados com curl ou chamada real
+> 3. Corrigir qualquer erro antes de commitar
+> Nunca subir código sem validação local.
+
 ## Stack
 - **Runtime:** Node.js (ESModules)
 - **Framework:** Express 5
