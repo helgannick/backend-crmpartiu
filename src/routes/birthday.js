@@ -2,6 +2,7 @@ import express from 'express';
 import { authMiddleware } from '../auth/authMiddleware.js';
 import { birthdayService } from '../services/birthdayService.js';
 import { supabaseAdmin } from '../supabase/supabaseClient.js';
+import { sendCronAlert } from '../services/alertService.js';
 
 const router = express.Router();
 
@@ -23,6 +24,9 @@ function runInBackground(jobFn, label) {
     })
     .catch(err => {
       console.error(`❌ Erro background ${label}:`, err.message);
+      sendCronAlert(label, err.message).catch(e =>
+        console.error('[alerta] falha ao enviar email:', e.message)
+      );
       supabaseAdmin.from('audit_logs').insert({
         table_name: 'cron',
         record_id: null,
