@@ -385,3 +385,47 @@ export async function getClientsByCity() {
 
   return result;
 }
+
+export async function getHotLeads() {
+  const currentYear = new Date().getFullYear();
+
+  const { data: logs, error } = await supabase
+    .from('message_logs')
+    .select('client_id, sent_at, metadata')
+    .eq('status', 'sent')
+    .order('sent_at', { ascending: false })
+    .limit(300);
+
+  if (error) throw error;
+
+  const birthdayLogs = (logs ?? []).filter(l => {
+    const c = l.metadata?.campaign;
+    return (c === 'birthday_d0' || c === 'birthday_d0_simple')
+      && l.metadata?.campaign_year === currentYear;
+  });
+
+  if (!birthdayLogs.length) return [];
+
+  const seenClients = new Map();
+  for (const log of birthdayLogs) {
+    if (!seenClients.has(log.client_id)) {
+      seenClients.set(log.client_id, log.sent_at);
+    }
+  }
+
+  const clientIds = [...seenClients.keys()];
+
+  const { data: clients, error: clientsError } = await supabase
+    .from('clients')
+    .select('id, name, phone, birth_date')
+    .in('id', clientIds)
+    .or(`birthday_converted_year.is.null,birthday_converted_year.neq.${currentYear}`)
+    .is('deleted_at', null);
+
+  if (clientsError) throw clientsError;
+
+  return (clients ?? [])
+    .map(c => ({ ...c, contacted_at: seenClients.get(c.id) }))
+    .sort((a, b) => new Date(b.contacted_at) - new Date(a.contacted_at));
+}
+

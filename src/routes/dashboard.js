@@ -14,6 +14,7 @@ import {
   getTopSources,
   getInactiveClients,
   getRetentionCohorts,
+  getHotLeads,
 } from "../controllers/dashboardController.js";
 
 const router = express.Router();
@@ -278,6 +279,11 @@ router.get("/retention-cohorts", async (req, res) => {
     const months = Math.min(Number(req.query.months) || 6, 12);
     res.json(await getRetentionCohorts(months));
   } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
+router.get("/hot-leads", async (req, res) => {
+  try { res.json(await getHotLeads()); }
+  catch (err) { res.status(500).json({ message: err.message }); }
 });
 
 export default router;
