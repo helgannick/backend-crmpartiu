@@ -3,7 +3,7 @@ import { z } from 'zod';
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
-  .refine((d) => new Date(d) < new Date(), 'Data deve estar no passado')
+  .refine((d) => d <= new Date().toISOString().split('T')[0], 'Data deve estar no passado')
   .optional();
 
 export const clientCreateSchema = z.object({
