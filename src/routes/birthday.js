@@ -4,7 +4,7 @@ import { birthdayService } from '../services/birthdayService.js';
 import { aiMessageService } from '../services/aiMessageService.js';
 import { evolutionService } from '../services/evolutionService.js';
 import { supabaseAdmin } from '../supabase/supabaseClient.js';
-import { sendCronAlert } from '../services/alertService.js';
+import { sendCronAlert, sendWeeklyAuditReport } from '../services/alertService.js';
 
 const router = express.Router();
 
@@ -50,6 +50,16 @@ function cronKeyMiddleware(req, res, next) {
   }
   next();
 }
+
+// POST /api/birthday/weekly-report — toda segunda às 06:00 (cron-job.org)
+router.post('/weekly-report', cronKeyMiddleware, async (req, res) => {
+  try {
+    await sendWeeklyAuditReport();
+    res.json({ success: true, message: 'Relatório semanal enviado para contato@partiupraboa.com' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // POST /api/birthday/test/d7 — fluxo real: envia opener e salva body como pending_reply
 router.post('/test/d7', cronKeyMiddleware, async (req, res) => {
