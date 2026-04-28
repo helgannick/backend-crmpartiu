@@ -44,7 +44,8 @@ export const birthdayService = {
       .select('id, name, phone, city, gender, bought_with_partiu, birth_date')
       .not('phone', 'is', null)
       .not('birth_date', 'is', null)
-      .is('deleted_at', null);
+      .is('deleted_at', null)
+      .ilike('city', '%rio de janeiro%');
 
     if (error) throw new Error('Erro ao buscar aniversariantes: ' + error.message);
 
