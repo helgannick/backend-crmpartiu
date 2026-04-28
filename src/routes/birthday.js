@@ -1,6 +1,8 @@
 import express from 'express';
 import { authMiddleware } from '../auth/authMiddleware.js';
 import { birthdayService } from '../services/birthdayService.js';
+import { aiMessageService } from '../services/aiMessageService.js';
+import { evolutionService } from '../services/evolutionService.js';
 import { supabaseAdmin } from '../supabase/supabaseClient.js';
 import { sendCronAlert } from '../services/alertService.js';
 
@@ -48,6 +50,22 @@ function cronKeyMiddleware(req, res, next) {
   }
   next();
 }
+
+// POST /api/birthday/test/d7 — fluxo real: envia opener e salva body como pending_reply
+router.post('/test/d7', cronKeyMiddleware, async (req, res) => {
+  try {
+    const { phone, name = 'Amigo' } = req.body;
+    if (!phone) return res.status(400).json({ error: 'phone é obrigatório' });
+
+    const client = { id: null, name, phone };
+    const { opener, body } = await aiMessageService.generatePreBirthdayMessage(client);
+    const result = await birthdayService.sendOpenerAndSavePending(client, { opener, body }, 'birthday_d7');
+
+    res.json({ opener, body, openerSent: result.success, error: result.error || null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // POST /api/birthday/run/d7
 router.post('/run/d7', authMiddleware, async (req, res) => {

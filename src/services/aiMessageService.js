@@ -43,47 +43,54 @@ const BIRTHDAY_D0_SIMPLE_FALLBACKS = [
 
 const PRE_BIRTHDAY_VARIATIONS = [
   {
-    opener: (name) => `E aí, ${name}, tudo bem?`,
-    body: `🎉 Seu aniversário tá chegando e nós da Partiu queremos te propor uma comemoração especial.\n\n✨ Posso te enviar as opções de festas e assim que você escolher, eu te passo as vantagens que consigo em cada uma delas...`,
+    opener: `🎉 E aí, tudo certo por aí?`,
+    body: `Vi aqui que seu aniversário tá chegando e pensei: será que você já tem algum rolê em mente pra comemorar ou tá deixando pra decidir depois?\n\n👀 Se quiser, posso te ajudar a descobrir algumas opções.`,
   },
   {
-    opener: (name) => `Oi ${name}! Como você tá?`,
-    body: `🎉 Seu aniversário tá chegando aí e a gente da Partiu quer muito fazer parte dessa data!\n\n✨ Tenho algumas opções de comemoração que acho que você vai adorar. Me responde aqui que eu te mando tudo!`,
+    opener: `🎉 Opa, tudo certo?`,
+    body: `Vi aqui que seu aniversário tá chegando… você já sabe onde vai comemorar ou ainda tá no "vou ver depois"?\n\n😄 Se quiser, posso te dar umas ideias.`,
   },
   {
-    opener: (name) => `Fala, ${name}! Tudo certo?`,
-    body: `🎉 Sei que o seu aniversário tá pertinho e a gente da Partiu tem uma ideia especial pra te apresentar!\n\n✨ Posso te mostrar as opções que temos pra comemorar essa data? É só me falar que te passo todas as vantagens!`,
+    opener: `🎉 E aí, tudo bem?`,
+    body: `Percebi que seu niver tá chegando e me bateu uma dúvida aqui:\nVocê já tem algum plano ou tá esperando aparecer algo legal?\n\nSe quiser, te ajudo com isso.`,
   },
   {
-    opener: (name) => `Oi ${name}! Tudo bem por aí?`,
-    body: `🎉 Olha que data especial vem aí! Seu aniversário tá chegando e a Partiu quer fazer parte dessa celebração!\n\n✨ Tenho opções incríveis de festa pra te mostrar. Me responde aqui que a gente bate um papo!`,
+    opener: `🎉 Opa, tudo certo por aí?`,
+    body: `Vi aqui que seu aniversário tá chegando… me conta: já tem alguma ideia de onde vai comemorar ou ainda tá na dúvida? 😄`,
   },
   {
-    opener: (name) => `E aí, ${name}! Como tá a vida?`,
-    body: `🎉 Seu aniversário tá chegando e a Partiu tem uma proposta especial preparada pra você!\n\n✨ Assim que você responder, te mando as opções de comemoração e as vantagens que consigo em cada uma!`,
+    opener: `🎉 E aí, como você tá?`,
+    body: `Notei que seu niver tá chegando e fiquei curioso: você já planejou algo ou tá esperando aparecer aquela opção boa? 👀`,
   },
   {
-    opener: (name) => `Oi ${name}, tudo bem?`,
-    body: `🎉 Seu aniversário vem chegando e nós da Partiu adoraríamos fazer parte dessa comemoração!\n\n✨ Posso te mostrar o que temos disponível? Me fala aqui e te passo as opções e o que consigo de especial pra você!`,
+    opener: `🎉 Oi! Tudo bem por aí?`,
+    body: `Vi que sua semana de aniversário tá chegando… já sabe como pretende celebrar ou ainda tá olhando possibilidades?`,
   },
   {
-    opener: (name) => `Fala, ${name}, tudo certo por aí?`,
-    body: `🎉 Seu dia especial tá se aproximando e a Partiu quer te propor algo incrível pra comemorar essa data!\n\n✨ É só me responder que eu te envio as opções de festa e as vantagens que tenho pra você!`,
+    opener: `Fala! Tudo tranquilo?`,
+    body: `Seu aniversário tá quase aí… você já tem algo em mente pra fazer ou tá deixando o clima te levar? 😄`,
   },
   {
-    opener: (name) => `E aí, ${name}! Beleza?`,
-    body: `🎉 Sabia que seu aniversário tá chegando? A Partiu tem uma proposta especial que acho que você vai curtir muito!\n\n✨ Me responde aqui que eu te mando as opções de comemoração com tudo que consigo de vantagem pra você!`,
+    opener: `🎉 E aí, tudo beleza?`,
+    body: `Percebi que seu niver tá chegando… já escolheu o rolê ou tá esperando alguma dica cair do céu? 👀`,
+  },
+  {
+    opener: `🎉 Oi! Como anda a correria por aí?`,
+    body: `Seu aniversário tá chegando, né? Já tem algum plano ou ainda não parou pra pensar nisso?`,
+  },
+  {
+    opener: `🎉 Opa! Tudo na paz?`,
+    body: `Vi que seu niver é essa semana… você já vai comemorar em algum lugar ou tá querendo sugestões?`,
   },
 ];
 
 export const aiMessageService = {
 
   // D-7: variações fixas, sem IA — garante padrão aprovado e sem risco de erro
-  async generatePreBirthdayMessage(client) {
-    const { name } = client;
+  async generatePreBirthdayMessage(_client) {
     const variation = PRE_BIRTHDAY_VARIATIONS[Math.floor(Math.random() * PRE_BIRTHDAY_VARIATIONS.length)];
     return {
-      opener: variation.opener(name),
+      opener: variation.opener,
       body: variation.body,
     };
   },

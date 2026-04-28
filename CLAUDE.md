@@ -102,6 +102,7 @@ scripts/
 | POST | `/api/birthday/run` | Cookie/Bearer | Disparo manual completo |
 | POST | `/api/birthday/run/d7` | Cookie/Bearer | Só job D-7 |
 | POST | `/api/birthday/run/d0` | Cookie/Bearer | Só job D-0 |
+| POST | `/api/birthday/test/d7` | `?key=CRON_SECRET` | Teste D-7 fluxo real: envia opener + salva pending_reply. Body `{ phone, name }` |
 | GET | `/api/birthday/preview` | Cookie/Bearer | Lista aniversariantes sem enviar |
 | POST | `/api/birthday/:clientId/convert` | Cookie/Bearer | Marca cliente como convertido |
 | POST | `/api/birthday/cleanup` | Cookie/Bearer | Expira pending_reply antigos |
@@ -177,8 +178,12 @@ Campos: `id, status, message_body, sent_at, metadata`.
 - A IA faz **apenas o primeiro contato** — desperta curiosidade e convida a responder
 - **Nunca** mencionar desconto, percentual, valor ou oferta concreta
 - Após o cliente responder, um humano assume a conversa e negocia
-- Openers devem ser calorosos e variados, indo além do básico "feliz aniversário"
 - Fallback de segurança: `.replace(/\[nome\]/gi, name)` em todos os retornos
+
+### D-7 (`PRE_BIRTHDAY_VARIATIONS`)
+- 10 variações fixas, sem IA, sem nome do cliente
+- Tom casual, pergunta aberta sobre planos de aniversário
+- Padrão aprovado: opener curto (saudação) + body com pergunta sobre onde vai comemorar
 
 ## Próximos passos pendentes
 1. **Templates editáveis** — tabela `message_templates` no Supabase, prompts via interface
