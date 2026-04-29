@@ -20,11 +20,13 @@ router.post('/whatsapp', async (req, res) => {
       if (!fromMe && msg?.key?.remoteJid && !msg.key.remoteJid.includes('@g.us')) {
         const jid = msg.key.remoteJid;
         const phone = jid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+        const messageText = msg?.message?.conversation
+          || msg?.message?.extendedTextMessage?.text
+          || '';
 
         console.log(`💬 Mensagem recebida de: ${phone}`);
 
-        // Dispara o body pendente se houver
-        await birthdayService.sendPendingBody(phone);
+        await birthdayService.handleIncomingMessage(phone, messageText);
       }
     }
 

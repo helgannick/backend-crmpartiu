@@ -117,9 +117,9 @@ scripts/
 🎂 D-7: busca aniversariantes em 7 dias
   → shuffle + limite 50
   → busca nome real do WhatsApp (fallback: nome do CRM)
-  → GPT-4o-mini gera { opener, body }
+  → variação fixa de PRE_BIRTHDAY_VARIATIONS
   → envia opener via Evolution API
-  → salva body como pending_reply no Supabase
+  → salva body como pending_reply (campaign: birthday_d7)
   → delay aleatório 3-8 min entre clientes
   ↓
 🎉 D-0: busca aniversariantes hoje
@@ -131,12 +131,31 @@ Cliente responde no WhatsApp
   ↓
 Evolution API → POST /api/webhooks/whatsapp
   ↓
-birthdayService.sendPendingBody(phone)
-  → busca pending_reply do cliente
-  → atualiza status para 'sending' (evita duplicata)
-  → envia body
-  → atualiza status para 'sent'
+birthdayService.handleIncomingMessage(phone, messageText)
+  → busca pending_reply mais recente do cliente
+  → roteia pelo campo campaign:
+
+  [birthday_d7 / birthday_d0 / birthday_d0_simple]
+    → sendPendingBody: envia body, marca como sent
+    → D-7: salva novo pending_reply (campaign: birthday_d7_step2)
+
+  [birthday_d7_step2]
+    → detecta intenção (isAffirmative)
+    → sim → envia lista de 5 eventos (1 de 10 variações), salva step3
+    → não → expira, humano assume
+
+  [birthday_d7_step3]
+    → detecta venue no texto (aldeia / caza / villa / parque / dedge)
+    → detectado → envia vantagens do venue, marca como sent
+    → não detectado → expira, humano assume
 ```
+
+### Eventos disponíveis (conversationFlowService.js)
+- **Aldeia Lagoa** — sexta e sábado, VIP + benefícios por vendas
+- **Caza Lagoa** — sexta e sábado, VIP + benefícios por vendas
+- **Villa Gávea** — quinta e sexta, VIP + benefícios por vendas
+- **Parque** — sábado e domingo, VIP + benefícios por pagantes
+- **D-Edge** — placeholder (aguarda conteúdo das vantagens)
 
 ## Proteções anti-spam WhatsApp
 - Delay aleatório 3-8 min entre envios

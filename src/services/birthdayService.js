@@ -1,6 +1,7 @@
 import { supabaseAdmin as supabase } from '../supabase/supabaseClient.js';
 import { evolutionService } from './evolutionService.js';
 import { aiMessageService } from './aiMessageService.js';
+import { conversationFlowService } from './conversationFlowService.js';
 
 async function resolveClientName(client) {
   const whatsappName = await evolutionService.getWhatsAppName(client.phone);
@@ -236,7 +237,136 @@ export const birthdayService = {
       })
       .eq('id', log.id);
 
+    // D-7: salva etapa 2 — aguarda resposta para apresentar eventos
+    if (result.success && log.metadata?.campaign === 'birthday_d7') {
+      await supabase.from('message_logs').insert({
+        client_id: log.client_id,
+        channel: 'whatsapp',
+        status: 'pending_reply',
+        message_body: '[aguardando resposta — etapa 2 eventos]',
+        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        metadata: {
+          campaign: 'birthday_d7_step2',
+          campaign_year: CAMPAIGN_YEAR(),
+          phone: phoneWithDDI,
+        }
+      });
+      console.log(`🔜 D-7 step2 salvo para ${phoneWithDDI}`);
+    }
+
     console.log(`💬 Follow-up enviado para ${phoneWithDDI}: ${result.success ? '✅' : '❌'}`);
+    return result;
+  },
+
+  // Dispatcher unificado — chamado pelo webhook com o texto da mensagem do cliente
+  async handleIncomingMessage(phone, messageText = '') {
+    const cleanPhone = phone.replace(/\D/g, '');
+    const phoneWithDDI = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+
+    const { data: logs } = await supabase
+      .from('message_logs')
+      .select('id, client_id, metadata')
+      .eq('status', 'pending_reply')
+      .contains('metadata', { phone: phoneWithDDI })
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (!logs || logs.length === 0) return null;
+
+    const log = logs[0];
+    const campaign = log.metadata?.campaign;
+
+    if (campaign === 'birthday_d7_step2') {
+      return await this._handleD7Step2(log, phone, phoneWithDDI, messageText);
+    }
+    if (campaign === 'birthday_d7_step3') {
+      return await this._handleD7Step3(log, phone, phoneWithDDI, messageText);
+    }
+    // D-7 step1, D-0 e outros: fluxo original
+    return await this.sendPendingBody(phone);
+  },
+
+  async _handleD7Step2(log, phone, phoneWithDDI, messageText) {
+    // Guard atômico — evita disparo duplo
+    const { data: updated } = await supabase
+      .from('message_logs')
+      .update({ status: 'sending' })
+      .eq('id', log.id)
+      .eq('status', 'pending_reply')
+      .select('id');
+
+    if (!updated || updated.length === 0) {
+      console.log(`⚠️ D-7 step2 ${phoneWithDDI} já em processamento`);
+      return null;
+    }
+
+    if (!conversationFlowService.isAffirmative(messageText)) {
+      await supabase.from('message_logs').update({ status: 'expired' }).eq('id', log.id);
+      console.log(`💬 D-7 step2 ${phoneWithDDI} — resposta não afirmativa, humano assume`);
+      return { success: false, reason: 'not_affirmative' };
+    }
+
+    const eventList = conversationFlowService.getRandomEventList();
+    const result = await evolutionService.sendText(phone, eventList);
+
+    await supabase.from('message_logs').update({
+      status: result.success ? 'sent' : 'failed',
+      delivered_at: result.success ? new Date().toISOString() : null,
+      metadata: { ...log.metadata, sentEventList: result.success }
+    }).eq('id', log.id);
+
+    if (result.success) {
+      await supabase.from('message_logs').insert({
+        client_id: log.client_id,
+        channel: 'whatsapp',
+        status: 'pending_reply',
+        message_body: '[aguardando escolha de evento — etapa 3]',
+        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        metadata: {
+          campaign: 'birthday_d7_step3',
+          campaign_year: CAMPAIGN_YEAR(),
+          phone: phoneWithDDI,
+        }
+      });
+      console.log(`🎯 D-7 step2 lista de eventos enviada para ${phoneWithDDI}`);
+    }
+
+    return result;
+  },
+
+  async _handleD7Step3(log, phone, phoneWithDDI, messageText) {
+    const { data: updated } = await supabase
+      .from('message_logs')
+      .update({ status: 'sending' })
+      .eq('id', log.id)
+      .eq('status', 'pending_reply')
+      .select('id');
+
+    if (!updated || updated.length === 0) {
+      console.log(`⚠️ D-7 step3 ${phoneWithDDI} já em processamento`);
+      return null;
+    }
+
+    const venue = conversationFlowService.detectVenue(messageText);
+
+    if (!venue) {
+      await supabase.from('message_logs').update({ status: 'expired' }).eq('id', log.id);
+      console.log(`💬 D-7 step3 ${phoneWithDDI} — venue não detectado, humano assume`);
+      return { success: false, reason: 'venue_not_detected' };
+    }
+
+    const advantages = conversationFlowService.getVenueAdvantages(venue);
+    const result = await evolutionService.sendText(phone, advantages);
+
+    await supabase.from('message_logs').update({
+      status: result.success ? 'sent' : 'failed',
+      delivered_at: result.success ? new Date().toISOString() : null,
+      metadata: { ...log.metadata, venueSelected: venue, sentAdvantages: result.success }
+    }).eq('id', log.id);
+
+    console.log(`🏠 D-7 step3 vantagens [${venue}] para ${phoneWithDDI}: ${result.success ? '✅' : '❌'}`);
     return result;
   },
 
