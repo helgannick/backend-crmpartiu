@@ -366,6 +366,23 @@ export const birthdayService = {
       metadata: { ...log.metadata, venueSelected: venue, sentAdvantages: result.success }
     }).eq('id', log.id);
 
+    // Mantém conversa ativa — cliente pode perguntar sobre outro evento
+    if (result.success) {
+      await supabase.from('message_logs').insert({
+        client_id: log.client_id,
+        channel: 'whatsapp',
+        status: 'pending_reply',
+        message_body: '[aguardando próxima escolha de evento]',
+        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        metadata: {
+          campaign: 'birthday_d7_step3',
+          campaign_year: CAMPAIGN_YEAR(),
+          phone: phoneWithDDI,
+        }
+      });
+    }
+
     console.log(`🏠 D-7 step3 vantagens [${venue}] para ${phoneWithDDI}: ${result.success ? '✅' : '❌'}`);
     return result;
   },
