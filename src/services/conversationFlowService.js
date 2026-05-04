@@ -82,7 +82,7 @@ Já anoto seu interesse e aciono a equipe pra te passar as condições especiais
 };
 
 const NEGATIVE_KEYWORDS = [
-  'não', 'nao', 'nope', 'negativo', 'sem interesse', 'nao tenho interesse',
+  'nope', 'negativo', 'sem interesse', 'nao tenho interesse',
   'não tenho interesse', 'nao quero', 'não quero', 'nao preciso', 'não preciso',
   'nao obrigado', 'não obrigado', 'obrigado nao', 'obrigado não',
   'pode nao', 'pode não', 'dispenso', 'deixa pra la', 'deixa pra lá',
