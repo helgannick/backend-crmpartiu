@@ -191,14 +191,26 @@ Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
       });
 
       const result = response.choices[0].message.content.trim().toUpperCase();
-      console.log(`🤖 classifyInterest: "${text}" → ${result}`);
+      console.log(`🤖 classifyInterest (IA): "${text}" → ${result}`);
       return result.startsWith('NAO') || result.startsWith('NÃO') || result.startsWith('NO') ? 'not_interested' : 'interested';
     } catch (error) {
-      console.error('⚠️ classifyInterest falhou, assumindo interested:', error.message);
-      return 'interested';
+      console.error('⚠️ classifyInterest IA falhou, usando fallback léxico:', error.message);
+      return classifyInterestFallback(text);
     }
   }
 };
+
+function classifyInterestFallback(text) {
+  const n = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const negative = [
+    'nao obrigado', 'nao, obrigado', 'obrigado nao', 'obrigado, nao',
+    'nao tenho interesse', 'sem interesse', 'nao quero', 'nao preciso',
+    'nao vou', 'dispenso', 'nao vai rolar', 'pode nao', 'nope',
+  ];
+  const isNegative = negative.some(k => n.includes(k));
+  console.log(`🔤 classifyInterest (fallback léxico): "${text}" → ${isNegative ? 'not_interested' : 'interested'}`);
+  return isNegative ? 'not_interested' : 'interested';
+}
 
 async function callOpenAI(userPrompt, temperature = 0.85) {
   const controller = new AbortController();
