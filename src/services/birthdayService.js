@@ -301,6 +301,12 @@ export const birthdayService = {
       return null;
     }
 
+    if (conversationFlowService.isNegative(messageText)) {
+      await supabase.from('message_logs').update({ status: 'expired' }).eq('id', log.id);
+      console.log(`💬 D-7 step2 ${phoneWithDDI} — sem interesse, humano assume`);
+      return { success: false, reason: 'not_interested' };
+    }
+
     const eventList = conversationFlowService.getRandomEventList();
     const result = await evolutionService.sendText(phone, eventList);
 

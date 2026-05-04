@@ -11,7 +11,7 @@ const EVENT_LIST_VARIATIONS = [
   'Tudo certo! Aqui estão os eventos com os melhores incentivos pra comemoração. Qual deles prefere considerar primeiro?',
 ];
 
-const EVENT_NAMES = '• Aldeia Lagoa\n• Caza Lagoa\n• D-Edge\n• Parque\n• Villa Gávea';
+const EVENT_NAMES = '• Aldeia Lagoa\n• Caza Lagoa\n• D-Edge\n• Parque Bar\n• Villa Gávea';
 
 const VENUE_ADVANTAGES = {
   aldeia: `*ALDEIA LAGOA — Aniversários e Despedidas* 🎉
@@ -61,8 +61,8 @@ Demais: FEM VIP / MASC R$70 — após 23h: valor da porta
 
 10 → R$100 | 15 → R$200 | 25 → 1 Combo | 40 → 2 Combos`,
 
-  parque: `*PARQUE — Aniversários* 🎉
-📅 Sábado e Domingo
+  parque: `*PARQUE BAR — Aniversários* 🎉
+📅 Sexta, Sábado e Domingo
 
 Aniversariante + 3 convidados VIP até 23h
 (Domingo: 1 convidado VIP até 22h)
@@ -81,6 +81,14 @@ Seus convidados ganham link com desconto pra evitar fila + lista amiga.
 Já anoto seu interesse e aciono a equipe pra te passar as condições especiais assim que confirmar. 😊`,
 };
 
+const NEGATIVE_KEYWORDS = [
+  'não', 'nao', 'nope', 'negativo', 'sem interesse', 'nao tenho interesse',
+  'não tenho interesse', 'nao quero', 'não quero', 'nao preciso', 'não preciso',
+  'nao obrigado', 'não obrigado', 'obrigado nao', 'obrigado não',
+  'pode nao', 'pode não', 'dispenso', 'deixa pra la', 'deixa pra lá',
+  'nao vai rolar', 'não vai rolar', 'nao vou', 'não vou',
+];
+
 const AFFIRMATIVE_KEYWORDS = [
   'sim', 'quero', 'pode', 'claro', 'vamos', 'bora', 'manda', 'conta',
   'ok', 'top', 'show', 'isso', 'vai', 'legal', 'boa', 'perfeito',
@@ -96,6 +104,12 @@ function normalize(text) {
 }
 
 export const conversationFlowService = {
+
+  isNegative(text) {
+    if (!text) return false;
+    const n = normalize(text);
+    return NEGATIVE_KEYWORDS.some(k => n.includes(normalize(k)));
+  },
 
   isAffirmative(text) {
     if (!text) return false;
