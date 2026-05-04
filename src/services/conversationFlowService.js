@@ -11,7 +11,7 @@ const EVENT_LIST_VARIATIONS = [
   'Tudo certo! Aqui estão os eventos com os melhores incentivos pra comemoração. Qual deles prefere considerar primeiro?',
 ];
 
-const EVENT_NAMES = '• Aldeia Lagoa\n• Caza Lagoa\n• D-Edge\n• Parque Bar\n• Villa Gávea';
+const EVENT_NAMES = '• Aldeia Lagoa\n• Caza Lagoa\n• Parque Bar\n• Villa Gávea';
 
 const VENUE_ADVANTAGES = {
   aldeia: `*ALDEIA LAGOA — Aniversários e Despedidas* 🎉
