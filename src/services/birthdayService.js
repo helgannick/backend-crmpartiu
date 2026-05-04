@@ -301,12 +301,6 @@ export const birthdayService = {
       return null;
     }
 
-    if (!conversationFlowService.isAffirmative(messageText)) {
-      await supabase.from('message_logs').update({ status: 'expired' }).eq('id', log.id);
-      console.log(`💬 D-7 step2 ${phoneWithDDI} — resposta não afirmativa, humano assume`);
-      return { success: false, reason: 'not_affirmative' };
-    }
-
     const eventList = conversationFlowService.getRandomEventList();
     const result = await evolutionService.sendText(phone, eventList);
 
