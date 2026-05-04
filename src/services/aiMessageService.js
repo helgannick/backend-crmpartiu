@@ -179,19 +179,20 @@ Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
         messages: [
           {
             role: 'system',
-            content: 'Você classifica respostas de clientes em um chatbot de eventos. Responda APENAS com "interested" ou "not_interested".'
+            content: 'Você classifica respostas de clientes. Responda APENAS com SIM ou NAO, sem pontuação.'
           },
           {
             role: 'user',
-            content: `O bot perguntou se o cliente já tem plano para o aniversário ou quer sugestões de eventos. O cliente respondeu:\n\n"${text}"\n\nO cliente demonstra interesse em ver opções de eventos? Responda apenas: interested ou not_interested`
+            content: `Um bot de eventos perguntou se o cliente quer sugestões de onde comemorar o aniversário. O cliente respondeu: "${text}"\n\nO cliente tem interesse em receber sugestões? Responda apenas SIM ou NAO.`
           }
         ],
-        max_tokens: 5,
+        max_tokens: 3,
         temperature: 0
       });
 
-      const result = response.choices[0].message.content.trim().toLowerCase();
-      return result.includes('not_interested') ? 'not_interested' : 'interested';
+      const result = response.choices[0].message.content.trim().toUpperCase();
+      console.log(`🤖 classifyInterest: "${text}" → ${result}`);
+      return result.startsWith('NAO') || result.startsWith('NÃO') || result.startsWith('NO') ? 'not_interested' : 'interested';
     } catch (error) {
       console.error('⚠️ classifyInterest falhou, assumindo interested:', error.message);
       return 'interested';
