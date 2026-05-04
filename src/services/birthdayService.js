@@ -301,9 +301,10 @@ export const birthdayService = {
       return null;
     }
 
-    if (conversationFlowService.isNegative(messageText)) {
+    const intent = await aiMessageService.classifyInterest(messageText);
+    if (intent === 'not_interested') {
       await supabase.from('message_logs').update({ status: 'expired' }).eq('id', log.id);
-      console.log(`💬 D-7 step2 ${phoneWithDDI} — sem interesse, humano assume`);
+      console.log(`💬 D-7 step2 ${phoneWithDDI} — sem interesse (IA), humano assume`);
       return { success: false, reason: 'not_interested' };
     }
 

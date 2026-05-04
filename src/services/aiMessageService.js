@@ -168,6 +168,34 @@ Regras: 1 bloco, máximo 2 linhas, informal, varie as palavras.
       const fallback = BIRTHDAY_D0_SIMPLE_FALLBACKS[Math.floor(Math.random() * BIRTHDAY_D0_SIMPLE_FALLBACKS.length)];
       return { opener: fallback.opener(name), body: fallback.body };
     }
+  },
+
+  async classifyInterest(text) {
+    if (!text || text.trim().length === 0) return 'interested';
+
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Você classifica respostas de clientes em um chatbot de eventos. Responda APENAS com "interested" ou "not_interested".'
+          },
+          {
+            role: 'user',
+            content: `O bot perguntou se o cliente já tem plano para o aniversário ou quer sugestões de eventos. O cliente respondeu:\n\n"${text}"\n\nO cliente demonstra interesse em ver opções de eventos? Responda apenas: interested ou not_interested`
+          }
+        ],
+        max_tokens: 5,
+        temperature: 0
+      });
+
+      const result = response.choices[0].message.content.trim().toLowerCase();
+      return result.includes('not_interested') ? 'not_interested' : 'interested';
+    } catch (error) {
+      console.error('⚠️ classifyInterest falhou, assumindo interested:', error.message);
+      return 'interested';
+    }
   }
 };
 
