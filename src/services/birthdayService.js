@@ -3,12 +3,8 @@ import { evolutionService } from './evolutionService.js';
 import { aiMessageService } from './aiMessageService.js';
 import { conversationFlowService } from './conversationFlowService.js';
 
-async function resolveClientName(client) {
-  const whatsappName = await evolutionService.getWhatsAppName(client.phone);
-  const firstName = whatsappName
-    ? whatsappName.split(' ')[0]
-    : client.name.split(' ')[0];
-  return { ...client, name: firstName };
+function resolveClientName(client) {
+  return { ...client, name: client.name.split(' ')[0] };
 }
 
 // Delay aleatório entre MIN e MAX minutos — imita comportamento humano
