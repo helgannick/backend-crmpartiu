@@ -29,7 +29,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(general);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, { customSiteTitle: 'CRM Partiu API' }));
