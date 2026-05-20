@@ -39,5 +39,5 @@ export const clientBulkSchema = z.object({
       bought_with_partiu: z.boolean().optional(),
       instagram:          z.string().max(100).optional(),
     })
-  ).min(1, 'Lista não pode ser vazia').max(1000, 'Máximo de 1000 registros por importação'),
+  ).min(1, 'Lista não pode ser vazia').max(5000, 'Máximo de 5000 registros por importação'),
 });

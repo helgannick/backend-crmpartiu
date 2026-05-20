@@ -261,19 +261,27 @@ router.post("/bulk", validate(clientBulkSchema), async (req, res) => {
     bought_with_partiu: c.bought_with_partiu,
   }));
 
-  const { data, error } = await supabaseAdmin
-    .from("clients")
-    .upsert(rows, { onConflict: "email", ignoreDuplicates: true })
-    .select("id");
+  const BATCH_SIZE = 500;
+  let created = 0;
 
-  if (error) {
-    console.error("POST /clients/bulk error", error);
-    return res.status(500).json({ message: error.message });
+  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+    const batch = rows.slice(i, i + BATCH_SIZE);
+    const { data, error } = await supabaseAdmin
+      .from("clients")
+      .upsert(batch, { onConflict: "email", ignoreDuplicates: true })
+      .select("id");
+
+    if (error) {
+      console.error("POST /clients/bulk error", error);
+      return res.status(500).json({ message: error.message });
+    }
+
+    created += data.length;
   }
 
   return res.status(200).json({
-    created: data.length,
-    skipped: clients.length - data.length,
+    created,
+    skipped: clients.length - created,
   });
 });
 
