@@ -74,6 +74,21 @@ scripts/
 | `clients` | Clientes com `birth_date`, `phone`, `name`, `city`, `gender`, `bought_with_partiu` |
 | `message_logs` | Log de todos os envios — status: `pending_reply`, `sending`, `sent`, `failed`, `expired` |
 
+### Valores aceitos em `clients.gender`
+
+`Masculino` | `Feminino` | `Outro` | `Não Quero Identificar`
+
+Definidos em **três lugares que precisam andar juntos** — alterar um só quebra o cadastro:
+1. `supabase/migrations/007_gender_nao_quero_identificar.sql` — CHECK constraint no DB
+2. `src/schemas/clientSchema.js` — `z.enum` em `clientCreateSchema` **e** `clientBulkSchema`
+3. `src/docs/swagger.js` — dois `enum` de `gender`
+
+`Outro` é legado (nenhuma tela do frontend oferece esse valor); mantido para não invalidar
+registros antigos. O cadastro público grava `Não Quero Identificar` com o texto literal.
+
+**Atenção:** a migration 007 dropa o CHECK de gender buscando o nome real em `pg_constraint`,
+porque o CHECK original de `001_create_tables.sql` é inline e recebe nome automático.
+
 ### Campos importantes em `message_logs.metadata`
 ```json
 {

@@ -37,7 +37,10 @@ supabase/migrations/
 ├── 001_create_tables.sql       — Todas as tabelas base
 ├── 002_create_relationships.sql — FKs explícitas (idempotente)
 ├── 003_create_indexes.sql      — Índices para queries frequentes
-└── 004_insert_seed_data.sql    — Gêneros musicais padrão
+├── 004_insert_seed_data.sql    — Gêneros musicais padrão
+├── 005_add_soft_delete.sql     — deleted_at em clients e interactions
+├── 006_create_audit_log.sql    — Tabela de auditoria
+└── 007_gender_nao_quero_identificar.sql — CHECK de gender aceita 'Não Quero Identificar'
 migrations/
 ├── 001_enable_rls.sql          — Habilita RLS nas tabelas
 └── 002_rls_policies.sql        — Políticas por role
