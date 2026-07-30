@@ -60,10 +60,31 @@ DATABASE_URL=postgresql://... ./supabase/apply-migrations.sh
 
 ### Como criar uma nova migration
 
-1. Crie o arquivo com o próximo número: `supabase/migrations/005_nome_descritivo.sql`
+1. Crie o arquivo com o próximo número: `supabase/migrations/008_nome_descritivo.sql`
 2. Use `IF NOT EXISTS` e `DO $$ ... $$` para garantir idempotência
 3. Adicione comentário de data e propósito no topo
-4. Aplique no Supabase antes do deploy
+4. **Mantenha o arquivo 100% ASCII** — ver abaixo
+5. Aplique no Supabase antes do deploy
+
+#### Migrations devem ser ASCII
+
+Colar SQL com caractere acentuado no SQL Editor do Supabase pode **truncar a string**
+e gerar `ERROR: 42601: unterminated quoted string`. Aconteceu na 007 com o literal
+`'Não Quero Identificar'`.
+
+Para literais com acento, use o escape Unicode do Postgres em string `E''`:
+
+```sql
+-- em vez de 'Não Quero Identificar'
+E'N\u00E3o Quero Identificar'
+```
+
+Resolve para os mesmos bytes UTF-8 (`C3 A3`, precomposta NFC) que o frontend envia.
+Confira antes de aplicar com:
+
+```sql
+SELECT E'N\u00E3o Quero Identificar', octet_length(E'N\u00E3o Quero Identificar');
+```
 
 ### Reset do banco (dev only)
 
