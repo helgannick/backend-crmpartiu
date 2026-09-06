@@ -261,7 +261,15 @@ export async function listClientsFiltered(query) {
       .lte("birth_date", `2100-${monthStr}-31`);
   }
 
-  supa = supa.range(offset, offset + limit - 1);
+  // Ordenação obrigatória: sem ORDER BY o Postgres devolve as linhas em ordem arbitrária,
+  // então .range() pagina em cima de uma ordem instável — cadastros novos não caem na
+  // página 1 e registros repetem/somem ao trocar de página.
+  // O desempate por id é necessário porque a importação em massa grava milhares de linhas
+  // com created_at idêntico, o que sozinho não define uma ordem total.
+  supa = supa
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   const { data, count, error } = await supa;
 

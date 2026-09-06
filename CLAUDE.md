@@ -241,6 +241,19 @@ Status possíveis: `pending_reply`, `sent`, `failed`, `expired`, `birthday_conve
 Retorna até 50 registros de `message_logs` do cliente, ordenados por `sent_at DESC`.
 Campos: `id, status, message_body, sent_at, metadata`.
 
+## Endpoint GET /clients — ordenação
+
+`listClientsFiltered` ordena por `created_at DESC, id DESC` **antes** do `.range()`.
+
+Os dois critérios são obrigatórios e não devem ser removidos:
+
+- Sem `ORDER BY`, o Postgres devolve as linhas em ordem arbitrária e o `.range()` pagina
+  em cima disso — cadastros novos não caem na página 1 e registros repetem ou somem ao
+  navegar entre páginas.
+- O desempate por `id` é necessário porque a importação em massa grava milhares de linhas
+  com `created_at` idêntico (a carga de 2026-08-24 tem ~15 mil linhas no mesmo timestamp).
+  Só `created_at` não define uma ordem total, então a paginação volta a ser instável.
+
 ## Regras da IA de mensagens (`aiMessageService.js`)
 
 - A IA faz **apenas o primeiro contato** — desperta curiosidade e convida a responder
