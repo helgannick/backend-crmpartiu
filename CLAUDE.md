@@ -100,6 +100,40 @@ porque o CHECK original de `001_create_tables.sql` é inline e recebe nome autom
 }
 ```
 
+## Rate limiting e `trust proxy`
+
+`src/middleware/rateLimiter.js` — limitadores em memória, chaveados por `req.ip`:
+
+| Limitador | Janela | Máx | Onde |
+|-----------|--------|-----|------|
+| `general` | 15 min | 100 | global, `app.use(general)` |
+| `publicRegister` | 1 h | 30 | `POST /public/register` |
+| `login` | 15 min | 10 | `POST /auth/login` |
+| `dashboard` | 1 min | 60 | rotas de dashboard |
+
+**`app.set('trust proxy', true)` em `src/app.js` — não trocar por um número.**
+
+Em produção a cadeia é Cloudflare → Render, ou seja mais de um hop. Com `trust proxy = 1`
+o Express parava num IP interno da infra (`10.x.x.x`), **igual para todos os visitantes**:
+todos os limitadores viravam globais em vez de por pessoa. Na prática o site inteiro tinha
+5 cadastros públicos por hora — uma leva de ~50 pessoas de um grupo de WhatsApp esgotava o
+balde e o resto recebia `429 "Muitas requisições"`. Bug encontrado em 2026-09-06, quando
+apenas 1 cliente foi criado em 7 dias.
+
+Como verificar se voltou a quebrar: mandar dois requests com `X-Forwarded-For` diferentes e
+conferir se cada um abre seu próprio contador.
+
+```bash
+curl -si localhost:3001/health -H "X-Forwarded-For: 200.1.1.1, 172.71.10.5" | grep -i ratelimit-remaining
+curl -si localhost:3001/health -H "X-Forwarded-For: 200.2.2.2, 172.71.10.5" | grep -i ratelimit-remaining
+# correto: os dois devolvem remaining=99. Compartilhando balde: 99 e 98.
+```
+
+**Não baixar `publicRegister` de volta para 5.** Operadoras móveis brasileiras usam CGNAT,
+então dezenas de pessoas do mesmo grupo chegam pelo mesmo IP público. `trust proxy = true`
+aceita o `X-Forwarded-For` do cliente (forjável) — trade-off consciente: para um formulário
+público de leads, perder cadastro é pior que alguém burlar o limite.
+
 ## Endpoints principais
 
 ### WhatsApp

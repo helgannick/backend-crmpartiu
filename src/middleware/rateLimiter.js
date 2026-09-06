@@ -13,10 +13,12 @@ export const general = rateLimit({
   message: message(15),
 });
 
-// 5 req / hora — registro público (evita spam de cadastro)
+// 30 req / hora — registro público (evita spam de cadastro).
+// Não baixar de novo para 5: operadoras móveis brasileiras usam CGNAT, então dezenas de
+// pessoas do mesmo grupo de WhatsApp chegam pelo mesmo IP público e seriam bloqueadas.
 export const publicRegister = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   skipFailedRequests: true,

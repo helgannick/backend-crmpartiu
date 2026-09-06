@@ -19,8 +19,11 @@ import birthdayRoutes from './routes/birthday.js';
 
 const app = express();
 
-// Necessário para Render/proxies reversos — libera X-Forwarded-For para rate limiter
-app.set('trust proxy', 1);
+// Necessário para Render/proxies reversos — libera X-Forwarded-For para rate limiter.
+// `true` (não `1`): a cadeia em produção é Cloudflare → Render, ou seja mais de um hop.
+// Com `1` o Express parava num IP interno da infra, igual para todos os visitantes, e os
+// rate limiters viravam globais — 5 cadastros/hora no site inteiro em vez de por pessoa.
+app.set('trust proxy', true);
 
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000';
 
